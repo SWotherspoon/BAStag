@@ -1,0 +1,12 @@
+Package: BAStag
+Type: Package
+Title: Basic data processing for British Antarctic Survey archival tags.
+Version: 0.0-1
+Date: 2013-08-01
+Author: Simon Wotherspoon, Michael Sumner and Simeon Lisovski
+Maintainer: Simon Wotherspoon <Simon.Wotherspoon@utas.edu.au>
+Suggests: GeoLight, geosphere, maptools, raster
+Description: Facilities for importing and plotting data recorded by BAS tag, and in particular detecting times of twilight from the recorded light data.
+NeedsCompilation: no
+ByteCompile: yes
+License: GPL-3

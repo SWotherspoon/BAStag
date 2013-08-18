@@ -1,0 +1,22 @@
+#################
+## R packages
+#################
+
+*.Rproj
+.Rbuildignore
+.Rhistory
+NAMESPACE
+man/*.Rd
+*~
+auto/
+*.tex
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex
+*.synctex.gz
+*.dvi
+.Rproj.user
