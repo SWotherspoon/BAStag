@@ -17,9 +17,9 @@ The package is easily built with RStudio
 
 4. Install [devtools](http://cran.r-project.org/web/packages/devtools/index.html) and [roxygen2](http://cran.r-project.org/web/packages/roxygen2/index.html) packages and dependencies in R
 
-5. Install [geosphere](http://cran.r-project.org/web/packages/geosphere/index.html), [GeoLight](http://cran.r-project.org/web/packages/GeoLight/index.html) packages and dependencies.
+5. Install dependencies [SGAT](https://github.com/SWotherspoon/SGAT) and its dependenies.
 
-6. Clone the repository from GitHub (https://github.com/SWotherspoon/SGAT).
+6. Clone the repository from GitHub (https://github.com/SWotherspoon/BAStags).
 
 7. Create an Rstudio project in the folder containing this README file.
 
@@ -34,9 +34,6 @@ The package is easily built with RStudio
 
 ## TODO
 
-- **Alternate Coordinates**.  The Metropolis sampler may be more efficient if locations are represented in geocentric ecliptic coordinates. But it is unclear whether the gains in efficiency due to higher acceptance rates would outweigh the costs of the coordinate transformation and the added code complexity. This is a low priority.
-
-- **Parallelisation**.  At this point, the Metropolis samplers are only capable of utilizing a single core on a multicore machine.  It would be relatively simple to introduce coarse grain parallelism by having the samplers draw multiple chains in parallel, using something like the multicore facility in the parallel package.  Unfortunately, at the time of writing there does not seem to be a good parallization solution that works equally well on all platforms.  This is a low priority.
 
 
 
