@@ -99,11 +99,11 @@ hour.offset <-  function(hr,offset=0) {
 
 ##' Display time series data as an image.
 ##'
-##' The \code{ts.image} function divides a regular sequence of samples
+##' The \code{tsimage} function divides a regular sequence of samples
 ##' into 24 hour periods, packs these into the columns of a matrix and
 ##' displays the result as an image.
 ##'
-##' The \code{ts.image.locator} function allows the user to select
+##' The \code{tsimage.locator} function allows the user to select
 ##' pixels with the mouse pointer in the style of \code{locator}, and
 ##' returns the times corresponding to the selected pixels.
 ##'
@@ -114,15 +114,15 @@ hour.offset <-  function(hr,offset=0) {
 ##' @param xlab the x axis label.
 ##' @param ylab the y axis label.
 ##' @param ... additional arguments to be passed to \code{image}
-##' @param im the axes coordinates returned by \code{ts.image}
+##' @param im the axes coordinates returned by \code{tsimage}
 ##' @param n the number of points to select
 ##' @return
-##' \code{ts.image} returns the date and hour coordinates of the image
+##' \code{tsimage} returns the date and hour coordinates of the image
 ##' grid.
-##' \code{ts.image.locator} returns the times corresponding to the
+##' \code{tsimage.locator} returns the times corresponding to the
 ##' selected pixels.
 ##' @export
-ts.image <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
+tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
 
   ## Estimate time interval allowing for drift.
   dt <- median(diff(as.numeric(date)))
@@ -145,9 +145,9 @@ ts.image <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
   invisible(list(date=day,hour=hour))
 }
 
-##' @rdname ts.image
+##' @rdname tsimage
 ##' @export
-ts.image.locator <- function(im,n=512) {
+tsimage.locator <- function(im,n=512) {
   ## Force evaluation of im.
   im <- im
   ## Select pixels and convert to date/time.
@@ -156,13 +156,41 @@ ts.image.locator <- function(im,n=512) {
 }
 
 
+##' Plot times as hour vs date
+##'
+##' Analogs of \code{plot}, \code{points} and \code{lines} that plot
+##' the time of day against date.
+##' @title tsimage plot
+##' @param date times as a vector of POSIXct
+##' @param offset the starting hour for the vertical axes.
+##' @param ... additional arguments parameters to pass to \code{plot},
+##' \code{points} or \code{lines}
+##' @export
+tsimage.plot <- function(date,offset,...) {
+  plot(date,hour.offset(as.hour(date),offset%%24),...)
+}
+
+##' @rdname tsimage.plot
+##' @export
+tsimage.points <- function(date,offset,...) {
+  points(date,hour.offset(as.hour(date),offset%%24),...)
+}
+
+##' @rdname tsimage.plot
+##' @export
+tsimage.lines <- function(date,offset,...) {
+  lines(date,hour.offset(as.hour(date),offset%%24),...)
+}
+
+
+
 ##' Display light series as an image.
 ##'
 ##' The \code{light.image} function displays sequence of light
 ##' samples into 24 hour periods, packs these into the columns of a
 ##' matrix and displays the result as an image.
 ##'
-##' This function is essentially a wrapper for \code{ts.image}.
+##' This function is essentially a wrapper for \code{tsimage}.
 ##' @title Display Light Data as an Image
 ##' @param tagdata a datframe with columns \code{Date} and
 ##' \code{Light} that are the sequence of sample times (as POSIXct)
@@ -175,9 +203,9 @@ ts.image.locator <- function(im,n=512) {
 ##' @export
 light.image <- function(tagdata,offset=0,xlab="Date",ylab="Hour",...) {
 
-  ts.image(tagdata$Date,tagdata$Light,offset,
-           zlim=c(0,64),col=grey(seq(0,1,length=64)),
-           xlab=xlab,ylab=ylab,...)
+  tsimage(tagdata$Date,tagdata$Light,offset,
+          zlim=c(0,64),col=grey(seq(0,1,length=64)),
+          xlab=xlab,ylab=ylab,...)
 }
 
 
@@ -356,31 +384,6 @@ find.dark24 <- function(tagdata,threshold) {
 
 
 
-##' Plot times of twilight
-##'
-##' Analogs of \code{plot}, \code{points} and \code{lines} that plot
-##' the time of day at which twilight occurs against date.
-##' @title Twilight plot
-##' @param twilights dataframe of twilight times
-##' @param offset the starting hour for the vertical axes.
-##' @param ... additional arguments parameters to pass to \code{plot},
-##' \code{points} or \code{lines}
-##' @export
-twilight.plot <- function(twilights,offset,...) {
-  plot(twilights$Twilight,hour.offset(as.hour(twilights$Twilight),offset),...)
-}
-
-##' @rdname twilight.plot
-##' @export
-twilight.points <- function(twilights,offset,...) {
-  points(twilights$Twilight,hour.offset(as.hour(twilights$Twilight),offset),...)
-}
-
-##' @rdname twilight.plot
-##' @export
-twilight.lines <- function(twilights,offset,...) {
-  lines(twilights$Twilight,hour.offset(as.hour(twilights$Twilight),offset),...)
-}
 
 
 
@@ -559,7 +562,6 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
   twilights
 }
 
-
 ##' Adjust twilight estimates for BAS light recording.
 ##'
 ##' BAS tags record the maximum light level observd in the preceding
@@ -573,4 +575,49 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' @export
 twilight.adjust <- function(twilights,interval=300) {
   twilights$Twilight[!twilights$Rise] <- twilights$Twilight[!twilights$Rise]-interval
+}
+
+
+
+
+##' Calibrate light levels to solar zenith angle
+##'
+##' Given data for a known location, this plots the recorded light
+##' against the solar zenith angle to allow observed light levels to
+##' be calibrated to solar zenith angle.
+##' @title Light Calibration
+##' @param tagdata a datframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' and light levels recorded by the tag.
+##' @param lon calibration longitude
+##' @param lat calibration latitude
+##' @param max.adjust adjust twilights for tags that report the
+##' maximum light interval observed in the preceeding intersampling
+##' interval.
+##' @param ... additional arguments to pass to \code{plot}.
+##' @export
+calibration.light <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
+  Light <- tagdata$Light
+  Zenith <- zenith(solar(tagdata$Date),lon,lat)
+  if(max.adjust) {
+    n <- length(Light)
+    Light <- Light[-1]
+    Zenith <- pmax(Zenith[-1],Zenith[-n])
+  }
+  plot(Zenith,Light,...)
+}
+
+
+##' Adjust time for clock drift
+##'
+##' Linearly rescale a sequence of dates to a new start and end time
+##' to correct for clock drift in the tag.
+##' @title Clock Drift Adjustment
+##' @param time a vector of POSIXct times
+##' @param start new start time as POSIXct
+##' @param end new end time as POSIXct
+##' @export
+drift.adjust <- function(time,start,end) {
+  n <- length(time)
+  .POSIXct(approx(time[c(1,n)],c(start,end),time)$y)
 }
