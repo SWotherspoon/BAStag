@@ -416,7 +416,7 @@ twilight.profiles <- function(tagdata,twilights,
                               offset=0,extend=18,threshold=NULL,
                               twilight.col=c("dodgerblue","firebrick"),
                               light.col=c("#CCFFCC","black","#CCCCFF"),
-                              threshold.col=c("red"),point.cex) {
+                              threshold.col=c("red"),point.cex=0.5) {
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
@@ -580,12 +580,12 @@ twilight.adjust <- function(twilights,interval=300) {
 
 
 
-##' Calibrate light levels to solar zenith angle
+##' Calibrate threshold light level to solar zenith angle
 ##'
 ##' Given data for a known location, this plots the recorded light
 ##' against the solar zenith angle to allow observed light levels to
 ##' be calibrated to solar zenith angle.
-##' @title Light Calibration
+##' @title Light Threshold Calibration
 ##' @param tagdata a datframe with columns \code{Date} and
 ##' \code{Light} that are the sequence of sample times (as POSIXct)
 ##' and light levels recorded by the tag.
@@ -596,7 +596,7 @@ twilight.adjust <- function(twilights,interval=300) {
 ##' interval.
 ##' @param ... additional arguments to pass to \code{plot}.
 ##' @export
-calibration.light <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
+threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
   Light <- tagdata$Light
   Zenith <- zenith(solar(tagdata$Date),lon,lat)
   if(max.adjust) {
