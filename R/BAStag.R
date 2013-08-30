@@ -163,11 +163,13 @@ tsimage.locator <- function(im,n=512) {
 ##' @title tsimage plot
 ##' @param date times as a vector of POSIXct
 ##' @param offset the starting hour for the vertical axes.
+##' @param xlab the label for the x axis.
+##' @param ylab the label for the y axis.
 ##' @param ... additional arguments parameters to pass to \code{plot},
 ##' \code{points} or \code{lines}
 ##' @export
-tsimage.plot <- function(date,offset,...) {
-  plot(date,hour.offset(as.hour(date),offset%%24),...)
+tsimage.plot <- function(date,offset,xlab="Date",ylab="Hour",...) {
+  plot(date,hour.offset(as.hour(date),offset%%24),xlab=xlab,ylab=ylab,...)
 }
 
 ##' @rdname tsimage.plot
@@ -602,7 +604,7 @@ threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
   if(max.adjust) {
     n <- length(Light)
     Light <- Light[-1]
-    Zenith <- pmax(Zenith[-1],Zenith[-n])
+    Zenith <- pmin(Zenith[-1],Zenith[-n])
   }
   plot(Zenith,Light,...)
 }
