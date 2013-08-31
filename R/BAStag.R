@@ -107,6 +107,9 @@ hour.offset <-  function(hr,offset=0) {
 ##' pixels with the mouse pointer in the style of \code{locator}, and
 ##' returns the times corresponding to the selected pixels.
 ##'
+##' These functions ignore clock drift and assume the sampling period
+##' exactly divides 24 hours.
+##'
 ##' @title Display Tag Data as an Image
 ##' @param date the sequence of sample times as POSIXct.
 ##' @param y the sequence of responses
@@ -124,12 +127,12 @@ hour.offset <-  function(hr,offset=0) {
 ##' @export
 tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
 
-  ## Estimate time interval allowing for drift.
-  dt <- median(diff(as.numeric(date)))
+  ## Estimate sampling interval rounded to nearest minute
+  dt <- 60*round(median(diff(as.numeric(date)))/60)
   ## Calculate number of rows m, number of columns n, and number of
   ## pixels to pad at front
-  m <- round(24*60*60/dt)
-  pad <- round(((as.hour(date[1])-offset)%%24)*60*60/dt)
+  m <- 24*60*60/dt
+  pad <- floor(((as.hour(date[1])-offset)%%24)*60*60/dt)
   n <- ceiling((length(y)+pad)/m)
   ## Hour of each row (strictly increasing)
   hour <- as.hour(seq(date[1]-pad*dt,by=dt,length=m))
@@ -142,7 +145,7 @@ tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
   axis.POSIXct(1,day)
   axis(2,at=seq(0,48,by=4),labels=seq(0,48,by=4)%%24)
   box()
-  invisible(list(date=day,hour=hour))
+  invisible(list(date=day,hour=hour,offset=hour[1]-dt/2))
 }
 
 ##' @rdname tsimage
@@ -577,6 +580,7 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' @export
 twilight.adjust <- function(twilights,interval=300) {
   twilights$Twilight[!twilights$Rise] <- twilights$Twilight[!twilights$Rise]-interval
+  twilights
 }
 
 
