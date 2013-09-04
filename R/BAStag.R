@@ -578,7 +578,7 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' @param interval the sampling interval
 ##' @return a dataframe of bias correct twilight times.
 ##' @export
-twilight.adjust <- function(twilights,interval=300) {
+twilight.adjust <- function(twilights,interval) {
   twilights$Twilight[!twilights$Rise] <- twilights$Twilight[!twilights$Rise]-interval
   twilights
 }
