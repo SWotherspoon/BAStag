@@ -1,4 +1,4 @@
-# BAStags
+# BAStag
 
 Basic data processing for British Antarctic Survey archival tags.
 Provides facilities for importing and plotting data recorded by the
