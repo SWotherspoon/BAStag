@@ -389,6 +389,44 @@ find.dark24 <- function(tagdata,threshold) {
 
 
 
+##' Find intervals of darkness spanning more than 24 hours.
+##'
+##' The \code{\link{find.twilights}} function find twilight times by
+##' searching for adjacent nights, but is unable to search beyond a
+##' period of light or dark spaaning greater than 24 hours.  This function
+##' finds extended periods of light or dark that span more than 24 hours.
+##' @title Find extended periods of light or dark
+##' @param tagdata a datframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' and light levels recorded by the tag.
+##' @param threshold the light threshold that defines twilight.
+##' @return A dataframe with one row for each intervals and columns
+##' \item{\code{Start}}{the start of the interval as POSIXct}
+##' \item{\code{Start}}{the end of the interval as POSIXct}
+##' \item{\code{Midpoint}}{the midpoint of the interval as POSIXct}
+##' @export
+find.chunk24 <- function(tagdata,threshold) {
+
+  ## Extract date and light data
+  date <- tagdata$Date
+  light <- tagdata$Light
+
+
+  ## Calculate light/dark transitions
+  l <- (light>=threshold)
+  f <- diff(l)
+  ab <- which(abs(f)==1)
+  ab <- ab+f(ab)==1
+  ## Find blocks longer than 24 hrs and return
+  tm <- as.numeric(date[ab])
+  keep <- which(diff(tm) >= 86400)
+  a <- ab[keep]
+  b <- ab[keep+1]
+  data.frame(Start=date[a],
+             End=date[b],
+             Midpoint=date[a] + (date[b+1]-date[a])/2)
+}
+
 
 
 
