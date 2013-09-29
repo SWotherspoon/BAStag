@@ -313,14 +313,14 @@ find.twilights <- function(tagdata,threshold,include,
 
 
   data.frame(Twilight=.POSIXct(as.vector(t(cbind(ss,sr))),"GMT"),
-             Rise=rep(c(F,T),nrow(pairs)))
+             Rise=rep(c(F,T),length(ss)))
 }
 
 
 
 
 
-##' Search for crepuscular light segments
+##' Search for crepuscular intervals
 ##'
 ##' Using the twilights calculated by \code{find.twilights}, search
 ##' for the intervals of reduced light intensity around twilight.
@@ -334,7 +334,9 @@ find.twilights <- function(tagdata,threshold,include,
 ##' the crepuscular period
 ##' @param max.threshold the light level that defines the light end of
 ##' the crepuscular period
-##' @return A dataframe with columns
+##' @param extend.dark the number of hours to search towards midnight.
+##' @param extend.light the number of hours to search towards noon.
+##' @return A dataframe with columns.
 ##' \item{\code{Twilight}}{times of twilight}
 ##' \item{\code{Rise}}{logical indicating sunrise}
 ##' \item{\code{Start}}{the start of the crepuscular period}
@@ -342,7 +344,8 @@ find.twilights <- function(tagdata,threshold,include,
 ##' where each row corresponds to a single twilight.
 ##' @export
 find.crepuscular <- function(tagdata,twilights,
-                             min.threshold=0,max.threshold=60) {
+                             min.threshold=0,max.threshold=60,
+                             extend.dark=1,extend.light=2) {
 
   runlength <- function(x) {
     y <- cumsum(x)
@@ -359,23 +362,28 @@ find.crepuscular <- function(tagdata,twilights,
   end <-twilight
   ks <- findInterval(twilight,date)
 
-
+  ## Loop over twilights
   for(i in seq_along(twilight)) {
     if(rise[i]) {
+      ## Search forward to noon
       k <- ks[i]
-      ls <- light[date >= date[k] & date <= date[k]+3*60*60]
+      ls <- light[date > date[k] & date <= date[k]+extend.light*60*60]
       end[i] <- date[k+min(which(ls >= max.threshold),length(ls))]
-      ls <- light[date <= date[k] & date >= date[k]-3*60*60]
-      rs <- rev(runlength(ls==0))
-      start[i] <- date[k-min(which(rs==min(max(rs),4)))]
-    } else {
+      ## Search backward to midnight
       k <- ks[i]+1
-      ## Index of first point
-      ls <- light[date <= date[k] & date >= date[k]-3*60*60]
-      end[i] <- date[k-min(which(rev(ls) >= max.threshold),length(ls))]
-      ls <- light[date >= date[k] & date <= date[k]+3*60*60]
+      ls <- light[date <= date[k] & date >= date[k]-extend.dark*60*60]
+      rs <- rev(runlength(ls==0))
+      start[i] <- date[k+1-min(which(rs>=min(max(rs),4)))]
+    } else {
+      ## Search backward to noon
+      k <- ks[i]+1
+      ls <- light[date < date[k] & date >= date[k]-extend.light*60*60]
+      start[i] <- date[k-min(which(rev(ls) >= max.threshold),length(ls))]
+      ## Search forward to midnight
+      k <- ks[i]
+      ls <- light[date >= date[k] & date <= date[k]+extend.dark*60*60]
       rs <- rev(runlength(rev(ls)==0))
-      start[i] <- date[k-min(which(rs==min(max(rs),4)))]
+      end[i] <- date[k-1+min(which(rs>=min(max(rs),4)))]
     }
   }
 
@@ -504,10 +512,11 @@ twilight.profiles <- function(tagdata,twilights,
                               offset=0,extend=18,threshold=NULL,
                               twilight.col=c("dodgerblue","firebrick"),
                               light.col=c("#CCFFCC","black","#CCCCFF"),
-                              threshold.col=c("red"),point.cex=0.5) {
+                              threshold.col=c("red"),point.cex=0.3) {
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
+
   ## Extract date and hour of twilight
   day <- twilights$Twilight
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
@@ -516,7 +525,8 @@ twilight.profiles <- function(tagdata,twilights,
   ## Make a blank plot
   plot.new()
   ## Plot twilight times and allow user to select twilight
-  plot(day,hour,pch=16,cex=point.cex,
+  plot(day,hour,
+       pch=16,cex=point.cex,
        xlab="Date",ylab="Hour",
        col=twilight.col[ifelse(twilights$Rise,1,2)])
   sel <- identify(day,hour,n=1,plot=F)
@@ -531,6 +541,10 @@ twilight.profiles <- function(tagdata,twilights,
     ## Overlay with light threshold
     if(!is.null(threshold)) {
       abline(v=day[sel],h=threshold,col=threshold.col)
+    }
+    ## Shade crepuscular period
+    if(!is.null(twilights$Start) & !is.null(twilights$End)) {
+        rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col="grey95")
     }
     ## Overlay the light profile for the previous day
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
@@ -553,7 +567,7 @@ twilight.profiles <- function(tagdata,twilights,
 
 
 
-##' Edit twilight times
+##' Interactively edit twilight times
 ##'
 ##' Interactively edit times of twilight based on the light profile.
 ##' A plot of the estimated times of sunrise and sunset is displayed,
@@ -588,7 +602,7 @@ twilight.profiles <- function(tagdata,twilights,
 twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
                            twilight.col=c("dodgerblue","firebrick","grey60"),
                            light.col=c("#CCFFCC","black","#CCCCFF"),
-                           threshold.col=c("red"),point.cex=0.5) {
+                           threshold.col=c("red"),point.cex=0.3) {
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
@@ -602,7 +616,8 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 
   opar <- par(mfrow=c(2,1),mar=c(3,5,1,1))
   ## Plot twilight times and allow user to select twilight
-  plot(day,hour,pch=16,cex=point.cex,
+  plot(day,hour,
+       pch=16,cex=point.cex,
        xlab="Date",ylab="Hour",
        col=twilight.col[ifelse(twilights$Rise,1,2)])
   sel <- identify(day,hour,n=1,plot=F)
@@ -650,6 +665,106 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
   twilights
 }
 
+
+
+##' Interactively edit crepuscular intervals
+##'
+##' Interactively edit the crepuscular intervals based on the light
+##' profile.  A plot of the estimated times of sunrise and sunset is
+##' displayed, and the user selects the twilight to be edited with the
+##' mouse pointer.  The light profile for the selected twilight,
+##' together with the profiles for the preceeding and following days
+##' are shown, and the user may select a new crepuscular interval by
+##' clicking twice on this plot.
+##'
+##' @title Edit crepuscular
+##' @param tagdata a datframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' and light levels recorded by the tag.
+##' @param twilights dataframe of twilight times
+##' @param offset the starting hour for the vertical axes.
+##' @param extend the period (in hours) before and after twilight for
+##' which the light profile should be plotted.
+##' @param threshold the light threshold that defines twilight.
+##' @param twilight.col the colors of the estimated sunrise and sunset times.
+##' @param light.col the colors of the light profiles for the day
+##' before, the selected twilight and the day after.
+##' @param threshold.col the color of the threshold markers
+##' @param point.cex expansion factor for plot points.
+##' @seealso \code{\link{twilight.edit}}
+##' @return the dataframe of edited twilights, with columns
+##' \item{\code{Twilight}}{edited times of twilight}
+##' \item{\code{Rise}}{logical indicating sunrise}
+##' \item{\code{Original}}{original times of twilight}
+##' @export
+crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
+                           twilight.col=c("dodgerblue","firebrick","grey60"),
+                           light.col=c("#CCFFCC","black","#CCCCFF"),
+                           threshold.col=c("red"),point.cex=0.3) {
+  ## Extract date and light
+  date <- tagdata$Date
+  light <- tagdata$Light
+  ## Extract date and hour of twilight
+  day <- twilights$Twilight
+  hour <- hour.offset(as.hour(twilights$Twilight),offset)
+
+  ## Record original times
+  twilights$StartOriginal <- twilights$Start
+  twilights$EndOriginal <- twilights$End
+
+  opar <- par(mfrow=c(2,1),mar=c(3,5,1,1))
+  ## Plot twilight times and allow user to select twilight
+  plot(day,hour,
+       pch=16,cex=point.cex,
+       xlab="Date",ylab="Hour",
+       col=twilight.col[ifelse(twilights$Rise,1,2)])
+  sel <- identify(day,hour,n=1,plot=F)
+
+  ## While the user has selected a twilight
+  while(length(sel)>0) {
+    ## Make light plot for the selected twilight
+    twl <- twilights$Twilight[sel]
+    keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
+    plot(date[keep],light[keep],xlab="",ylab="Light",type="n",xaxt="n",main=as.character(twl))
+    axis.POSIXct(1,x=date[keep],format="%H:%M")
+    ## Overlay with light thresholds
+    if(!is.null(threshold)) {
+      abline(h=threshold,col=threshold.col)
+    }
+    ## Shade crepuscular period
+    rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col="grey95")
+    ## Overlay the light profile for the previous day
+    keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
+    lines(date[keep]+86400,light[keep],type="l",col=light.col[1])
+    ## Overlay the light profile for the following day
+    keep <- (date >= twl+86400-3600*extend) & (date <= twl+86400+3600*extend)
+    lines(date[keep]-86400,light[keep],type="l",col=light.col[3])
+    ## Overlay the light profile for the selected twilight again
+    keep <- (date >= twl-3600*extend) & (date <= twl+3600*extend)
+    lines(date[keep],light[keep],type="l",col=light.col[2])
+    ## Allow user to select new interval
+    edit <- locator(type="n",n=2)
+    while(!is.null(edit) & length(edit$x)==2) {
+      x <- .POSIXct(sort(edit$x),"GMT")
+      x <- date[findInterval(x,date)+c(0,1)]
+      twilights$Start[sel] <- x[1]
+      twilights$End[sel] <- x[2]
+      abline(v=x,col=threshold.col)
+      edit <- locator(type="n",n=2)
+    }
+    ## Replot the twilights, with the orginals shown in grey underneath.
+    plot(day,hour,
+         pch=16,cex=point.cex,
+         xlab="Date",ylab="Hour",
+         col=twilight.col[ifelse(twilights$Rise,1,2)])
+    sel <- identify(day,hour,n=1,plot=F)
+  }
+  par(opar)
+  twilights
+}
+
+
+
 ##' Adjust twilight estimates for BAS light recording.
 ##'
 ##' BAS tags record the maximum light level observd in the preceding
@@ -665,7 +780,6 @@ twilight.adjust <- function(twilights,interval) {
   twilights$Twilight[!twilights$Rise] <- twilights$Twilight[!twilights$Rise]-interval
   twilights
 }
-
 
 
 
