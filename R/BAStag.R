@@ -469,7 +469,7 @@ find.chunk24 <- function(tagdata,threshold) {
   l <- (light>=threshold)
   f <- diff(l)
   ab <- which(abs(f)==1)
-  ab <- ab+f(ab)==1
+  ab <- ab+f[ab]==1
   ## Find blocks longer than 24 hrs and return
   tm <- as.numeric(date[ab])
   keep <- which(diff(tm) >= 86400)
