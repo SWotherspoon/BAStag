@@ -201,15 +201,16 @@ tsimage.lines <- function(date,offset,...) {
 ##' \code{Light} that are the sequence of sample times (as POSIXct)
 ##' and light levels recorded by the tag.
 ##' @param offset the offset for the vertical axis in hours.
+##' @param zmax the maximum light level
 ##' @param xlab the x axis label.
 ##' @param ylab the y axis label.
 ##' @param ...  additional arguments to pass to image.
 ##' @return Returns the date and hour coordinates of the image grid.
 ##' @export
-light.image <- function(tagdata,offset=0,xlab="Date",ylab="Hour",...) {
+light.image <- function(tagdata,offset=0,zmax=64,xlab="Date",ylab="Hour",...) {
 
   tsimage(tagdata$Date,tagdata$Light,offset,
-          zlim=c(0,64),col=grey(seq(0,1,length=64)),
+          zlim=c(0,zmax),col=grey(seq(0,1,length=64)),
           xlab=xlab,ylab=ylab,...)
 }
 
