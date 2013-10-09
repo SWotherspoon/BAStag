@@ -702,6 +702,19 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
                            twilight.col=c("dodgerblue","firebrick","grey60"),
                            light.col=c("#CCFFCC","black","#CCCCFF"),
                            threshold.col=c("red"),point.cex=0.3) {
+
+  ribbon <- function(start,end,col) {
+    shour <- hour.offset(as.hour(start),offset)
+    ehour <- hour.offset(as.hour(end),offset)
+    ehour <- ifelse(shour < ehour,ehour,ehour+24)
+    xs <- c(start,rev(end))
+    ys <- c(shour,rev(ehour))
+    polygon(xs,ys-24,border=NA,col=col)
+    polygon(xs,ys,border=NA,col=col)
+    polygon(xs,ys+24,border=NA,col=col)
+  }
+
+
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
@@ -715,14 +728,14 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
 
   opar <- par(mfrow=c(2,1),mar=c(3,5,1,1))
   ## Plot twilight times and allow user to select twilight
-  plot(day,hour,
-       pch=16,cex=point.cex,
-       xlab="Date",ylab="Hour",
-       col=twilight.col[ifelse(twilights$Rise,1,2)])
-  sel <- identify(day,hour,n=1,plot=F)
+  plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
+  ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
+  ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+  sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
 
   ## While the user has selected a twilight
   while(length(sel)>0) {
+    sel <- (sel-1)%%length(day)+1
     ## Make light plot for the selected twilight
     twl <- twilights$Twilight[sel]
     keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
@@ -753,11 +766,10 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
       abline(v=x,col=threshold.col)
       edit <- locator(type="n",n=2)
     }
-    ## Replot the twilights, with the orginals shown in grey underneath.
-    plot(day,hour,
-         pch=16,cex=point.cex,
-         xlab="Date",ylab="Hour",
-         col=twilight.col[ifelse(twilights$Rise,1,2)])
+    ## Plot twilight times and allow user to select twilight
+    plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
+    ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
+    ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
     sel <- identify(day,hour,n=1,plot=F)
   }
   par(opar)
