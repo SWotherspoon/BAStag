@@ -511,13 +511,25 @@ find.chunk24 <- function(tagdata,threshold) {
 ##' @export
 twilight.profiles <- function(tagdata,twilights,
                               offset=0,extend=18,threshold=NULL,
-                              twilight.col=c("dodgerblue","firebrick"),
+                              twilight.col=c("dodgerblue","firebrick","grey95"),
                               light.col=c("#CCFFCC","black","#CCCCFF"),
                               threshold.col=c("red"),point.cex=0.3) {
+
+  ribbon <- function(start,end,col) {
+    shour <- hour.offset(as.hour(start),offset)
+    ehour <- hour.offset(as.hour(end),offset)
+    ehour <- ifelse(shour < ehour,ehour,ehour+24)
+    xs <- c(start,rev(end))
+    ys <- c(shour,rev(ehour))
+    polygon(xs,ys-24,border=NA,col=col)
+    polygon(xs,ys,border=NA,col=col)
+    polygon(xs,ys+24,border=NA,col=col)
+  }
+
+
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
-
   ## Extract date and hour of twilight
   day <- twilights$Twilight
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
@@ -526,14 +538,23 @@ twilight.profiles <- function(tagdata,twilights,
   ## Make a blank plot
   plot.new()
   ## Plot twilight times and allow user to select twilight
-  plot(day,hour,
-       pch=16,cex=point.cex,
-       xlab="Date",ylab="Hour",
-       col=twilight.col[ifelse(twilights$Rise,1,2)])
-  sel <- identify(day,hour,n=1,plot=F)
+  if(!is.null(twilights$Start) & !is.null(twilights$End)) {
+    plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
+    ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
+    ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+    sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
+  } else {
+    plot(day,hour,
+         pch=16,cex=point.cex,
+         xlab="Date",ylab="Hour",
+         ylim=c(offset,offset+24),
+         col=twilight.col[ifelse(twilights$Rise,1,2)])
+    sel <- identify(day,hour,n=1,plot=F)
+  }
 
   ## While the user has selected a twilight
   while(length(sel)>0) {
+    sel <- (sel-1)%%length(day)+1
     ## Make light plot for the selected twilight
     twl <- twilights$Twilight[sel]
     keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
@@ -545,7 +566,7 @@ twilight.profiles <- function(tagdata,twilights,
     }
     ## Shade crepuscular period
     if(!is.null(twilights$Start) & !is.null(twilights$End)) {
-        rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col="grey95")
+        rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col=twilight.col[3])
     }
     ## Overlay the light profile for the previous day
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
@@ -558,10 +579,19 @@ twilight.profiles <- function(tagdata,twilights,
     lines(date[keep],light[keep],type="l",col=light.col[2])
 
     ## Plot twilight times and allow user to selected twilight
-    plot(day,hour,pch=16,cex=point.cex,
-         xlab="Date",ylab="Hour",
-         col=twilight.col[ifelse(twilights$Rise,1,2)])
-    sel <- identify(day,hour,n=1,plot=F)
+    if(!is.null(twilights$Start) & !is.null(twilights$End)) {
+      plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
+      ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
+      ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+      sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
+    } else {
+      plot(day,hour,
+           pch=16,cex=point.cex,
+           xlab="Date",ylab="Hour",
+           ylim=c(offset,offset+24),
+           col=twilight.col[ifelse(twilights$Rise,1,2)])
+      sel <- identify(day,hour,n=1,plot=F)
+    }
   }
   par(opar)
 }
@@ -691,7 +721,6 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' @param light.col the colors of the light profiles for the day
 ##' before, the selected twilight and the day after.
 ##' @param threshold.col the color of the threshold markers
-##' @param point.cex expansion factor for plot points.
 ##' @seealso \code{\link{twilight.edit}}
 ##' @return the dataframe of edited twilights, with columns
 ##' \item{\code{Twilight}}{edited times of twilight}
@@ -699,9 +728,9 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
 crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
-                           twilight.col=c("dodgerblue","firebrick","grey60"),
+                           twilight.col=c("dodgerblue","firebrick","grey95"),
                            light.col=c("#CCFFCC","black","#CCCCFF"),
-                           threshold.col=c("red"),point.cex=0.3) {
+                           threshold.col=c("red")) {
 
   ribbon <- function(start,end,col) {
     shour <- hour.offset(as.hour(start),offset)
@@ -741,12 +770,12 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
     keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
     plot(date[keep],light[keep],xlab="",ylab="Light",type="n",xaxt="n",main=as.character(twl))
     axis.POSIXct(1,x=date[keep],format="%H:%M")
-    ## Overlay with light thresholds
+    ## Overlay with light threshold
     if(!is.null(threshold)) {
       abline(h=threshold,col=threshold.col)
     }
     ## Shade crepuscular period
-    rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col="grey95")
+    rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col=twilight.col[3])
     ## Overlay the light profile for the previous day
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
     lines(date[keep]+86400,light[keep],type="l",col=light.col[1])
@@ -756,6 +785,7 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
     ## Overlay the light profile for the selected twilight again
     keep <- (date >= twl-3600*extend) & (date <= twl+3600*extend)
     lines(date[keep],light[keep],type="l",col=light.col[2])
+
     ## Allow user to select new interval
     edit <- locator(type="n",n=2)
     while(!is.null(edit) & length(edit$x)==2) {
