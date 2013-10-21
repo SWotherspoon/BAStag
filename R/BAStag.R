@@ -956,6 +956,8 @@ drift.adjust <- function(time,start,end) {
 ##' @param light.col the colors of the light profiles for the day
 ##' before, the selected twilight and the day after.
 ##' @param threshold.col the color of the threshold markers
+##' @param width width of the interface windows
+##' @param height height of the interface windows
 ##' @seealso \code{\link{twilight.edit}}
 ##' @return the dataframe of edited twilights, with columns
 ##' \item{\code{Twilight}}{edited times of twilight}
@@ -965,7 +967,7 @@ drift.adjust <- function(time,start,end) {
 crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
                               twilight.col=c("dodgerblue","firebrick","grey60"),
                               light.col=c("#CCFFCC","black","#CCCCFF"),
-                              threshold.col=c("red")) {
+                              threshold.col=c("red"),width=10,height=5) {
 
   ## Extract date and light
   date <- tagdata$Date
@@ -1024,7 +1026,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
     ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
     ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
-    points(day[index],hour[index],pch=1)
+    points(day[index],hour[index],pch=16)
   }
 
 
@@ -1109,8 +1111,8 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     }
     ## Button 2 -> accept new selection
     if(length(buttons) > 0 && buttons[1]==2) {
-      twilights$Start[index] <- .POSIXct(x1,"GMT")
-      twilights$End[index] <- .POSIXct(x2,"GMT")
+      twilights$Start[index] <<- .POSIXct(x1,"GMT")
+      twilights$End[index] <<- .POSIXct(x2,"GMT")
       changed <<- FALSE
       profile.draw()
     }
@@ -1132,7 +1134,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   ## Set up selection window
   index <- 1
   cache(index)
-  X11()
+  X11(width=width,height=height)
   select.draw()
   select.dev <- dev.cur()
   setGraphicsEventHandlers(
