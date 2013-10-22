@@ -162,9 +162,14 @@ tsimage.locator <- function(im,n=512) {
 ##' Plot times as hour vs date
 ##'
 ##' Analogs of \code{plot}, \code{points} and \code{lines} that plot
-##' the time of day against date.
+##' the time of day against date.  The \code{tsimage.ribbon} uses
+##' \code{polygon} to produce a polygonal "ribbon" that represents a
+##' series of daily time intervals.
+##'
 ##' @title tsimage plot
 ##' @param date times as a vector of POSIXct
+##' @param date1 lower bound as a vector of POSIXct
+##' @param date2 upper bound as a vector of POSIXct
 ##' @param offset the starting hour for the vertical axes.
 ##' @param xlab the label for the x axis.
 ##' @param ylab the label for the y axis.
@@ -185,6 +190,19 @@ tsimage.points <- function(date,offset,...) {
 ##' @export
 tsimage.lines <- function(date,offset,...) {
   lines(date,hour.offset(as.hour(date),offset%%24),...)
+}
+
+##' @rdname tsimage.plot
+##' @export
+tsimage.ribbon <- function(date1,date2,offset,...) {
+  hour1 <- hour.offset(as.hour(date1),offset)
+  hour2 <- hour.offset(as.hour(date2),offset)
+  hour2 <- ifelse(hour1 < hour2,hour2,hour2+24)
+  xs <- c(date1,rev(date2))
+  ys <- c(hour1,rev(hour2))
+  polygon(xs,ys-24,...)
+  polygon(xs,ys,...)
+  polygon(xs,ys+24,...)
 }
 
 
@@ -427,7 +445,7 @@ find.crepuscular <- function(tagdata,twilights,
 ##' \item{\code{Light}}{the recorded light level}
 ##' \item{\code{Segment}}{an integer identifying the segment}
 ##' @export
-crepuscular.extract <- function(tagdata,twilights,adjust.interval=0) {
+extract.crepuscular <- function(tagdata,twilights,adjust.interval=0) {
   date <- vector(mode="list",nrow(twilights))
   lght <- vector(mode="list",nrow(twilights))
   sgmt <- vector(mode="list",nrow(twilights))
@@ -439,7 +457,7 @@ crepuscular.extract <- function(tagdata,twilights,adjust.interval=0) {
     lght[[k]] <- tagdata$Light[is]
     sgmt[[k]] <- rep(k,length.out=length(is))
   }
-  data.frame(Date=unlist(date),
+  data.frame(Date=.POSIXct(unlist(date),"GMT"),
              Light=unlist(lght),
              Segment=unlist(sgmt))
 }
@@ -568,18 +586,6 @@ twilight.profiles <- function(tagdata,twilights,
                               light.col=c("#CCFFCC","black","#CCCCFF"),
                               threshold.col=c("red"),point.cex=0.3) {
 
-  ribbon <- function(start,end,col) {
-    shour <- hour.offset(as.hour(start),offset)
-    ehour <- hour.offset(as.hour(end),offset)
-    ehour <- ifelse(shour < ehour,ehour,ehour+24)
-    xs <- c(start,rev(end))
-    ys <- c(shour,rev(ehour))
-    polygon(xs,ys-24,border=NA,col=col)
-    polygon(xs,ys,border=NA,col=col)
-    polygon(xs,ys+24,border=NA,col=col)
-  }
-
-
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
@@ -593,8 +599,10 @@ twilight.profiles <- function(tagdata,twilights,
   ## Plot twilight times and allow user to select twilight
   if(!is.null(twilights$Start) & !is.null(twilights$End)) {
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
-    ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
-    ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+    tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
+                   border=NA,col=twilight.col[1])
+    tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
+                   border=NA,col=twilight.col[2])
     sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
   } else {
     plot(day,hour,
@@ -634,8 +642,10 @@ twilight.profiles <- function(tagdata,twilights,
     ## Plot twilight times and allow user to selected twilight
     if(!is.null(twilights$Start) & !is.null(twilights$End)) {
       plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
-      ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
-      ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+      tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
+                     border=NA,col=twilight.col[1])
+      tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
+                     border=NA,col=twilight.col[2])
       sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
     } else {
       plot(day,hour,
@@ -787,18 +797,6 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
                            light.col=c("#CCFFCC","black","#CCCCFF"),
                            threshold.col=c("red")) {
 
-  ribbon <- function(start,end,col) {
-    shour <- hour.offset(as.hour(start),offset)
-    ehour <- hour.offset(as.hour(end),offset)
-    ehour <- ifelse(shour < ehour,ehour,ehour+24)
-    xs <- c(start,rev(end))
-    ys <- c(shour,rev(ehour))
-    polygon(xs,ys-24,border=NA,col=col)
-    polygon(xs,ys,border=NA,col=col)
-    polygon(xs,ys+24,border=NA,col=col)
-  }
-
-
   ## Extract date and light
   date <- tagdata$Date
   light <- tagdata$Light
@@ -813,8 +811,10 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
   opar <- par(mfrow=c(2,1),mar=c(3,5,1,1))
   ## Plot twilight times and allow user to select twilight
   plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
-  ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
-  ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+  tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
+                 border=NA,col=twilight.col[1])
+  tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
+                 border=NA,col=twilight.col[2])
   sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
 
   ## While the user has selected a twilight
@@ -853,8 +853,10 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
     }
     ## Plot twilight times and allow user to select twilight
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
-    ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
-    ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+    tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
+                   border=NA,col=twilight.col[1])
+    tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
+                   border=NA,col=twilight.col[2])
     sel <- identify(day,hour,n=1,plot=F)
   }
   par(opar)
@@ -1218,19 +1220,11 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
 
   ## Draw the selection window
   select.draw <- function() {
-    ribbon <- function(start,end,col) {
-      shour <- hour.offset(as.hour(start),offset)
-      ehour <- hour.offset(as.hour(end),offset)
-      ehour <- ifelse(shour < ehour,ehour,ehour+24)
-      xs <- c(start,rev(end))
-      ys <- c(shour,rev(ehour))
-      polygon(xs,ys-24,border=NA,col=col)
-      polygon(xs,ys,border=NA,col=col)
-      polygon(xs,ys+24,border=NA,col=col)
-    }
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
-    ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],col=twilight.col[1])
-    ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],col=twilight.col[2])
+    tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
+                   border=NA,col=twilight.col[1])
+    tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
+                   border=NA,col=twilight.col[2])
     points(day[index],hour[index],pch=16)
   }
 
