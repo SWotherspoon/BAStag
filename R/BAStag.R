@@ -962,7 +962,7 @@ drift.adjust <- function(time,start,end) {
 ##' \item{\code{Rise}}{logical indicating sunrise}
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
-twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,ymax=64,
+twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
                            twilight.col=c("dodgerblue","firebrick","grey60"),
                            light.col=c("#CCFFCC","black","#CCCCFF"),
                            threshold.col=c("red","grey95"),point.cex=0.3,width=10,height=5) {
@@ -991,6 +991,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     index <<- k
     twl <<- twilights$Twilight[index]
     keep <- (twilights$Twilight >= twl - 3600*extend) & (twilights$Twilight <= twl + 3600*extend)
+    keep[index] <- FALSE
     twls <<- twilights$Twilight[keep]
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
     dteA <<- date[keep]
@@ -1001,6 +1002,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     keep <- (date >= twl+86400-3600*extend) & (date <= twl+86400+3600*extend)
     dteC <<- date[keep]
     lgtC <<- light[keep]
+    pt <<- NULL
     changed <<- FALSE
   }
 
@@ -1033,7 +1035,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     lines(dteB,lgtB,type="l",col=light.col[2])
     abline(v=twls,col=threshold.col[2])
     abline(v=twl,col=threshold.col[1])
-    if(changed) points(pt,col=threshold.col[1])
+    if(changed) points(pt[1],pt[2],pch=16,col=threshold.col[1])
   }
 
 
@@ -1060,11 +1062,11 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     ## q quits
     if(key=="q") return(-1)
     ## +/- : zoom time window around threshold crossing
-    if(key=="-") {
+    if(key=="+") {
       extend <<- max(extend-1,1)
       cache(index)
     }
-    if(key=="+") {
+    if(key=="-") {
       extend <<- min(extend+1,24)
       cache(index)
     }
@@ -1088,7 +1090,8 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     ## Button 1 -> record location and do complete draw
     if(length(buttons) > 0 && buttons[1]==0) {
       changed <<- TRUE
-      pt <<- c(grconvertX(x,from="ndc",to="user"),grconvertY(x,from="ndc",to="user"))
+      pt <<- c(grconvertX(x,from="ndc",to="user"),
+               grconvertY(y,from="ndc",to="user"))
     }
     ## Button 2 -> accept new selection
     if(length(buttons) > 0 && buttons[1]==2 && changed) {
@@ -1114,7 +1117,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,y
     onMouseDown=selOnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
-  X11()
+  X11(width=width,height=height)
   profile.dev <- dev.cur()
   profile.draw()
   setGraphicsEventHandlers(
@@ -1274,11 +1277,11 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     ## q quits
     if(key=="q") return(-1)
     ## +/- : zoom time window around threshold crossing
-    if(key=="-") {
+    if(key=="+") {
       extend <<- max(extend-1,1)
       cache(index)
     }
-    if(key=="+") {
+    if(key=="-") {
       extend <<- min(extend+1,24)
       cache(index)
     }
@@ -1342,7 +1345,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     onMouseDown=selOnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
-  X11()
+  X11(width=width,height=height)
   profile.dev <- dev.cur()
   profile.init()
   profile.draw()
