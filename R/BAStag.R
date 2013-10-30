@@ -617,9 +617,9 @@ twilight.profiles <- function(tagdata,twilights,
   if(!is.null(twilights$Start) & !is.null(twilights$End)) {
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
     tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
-                   border=NA,col=twilight.col[1])
+                   offset=offset,border=NA,col=twilight.col[1])
     tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
-                   border=NA,col=twilight.col[2])
+                   offset=offset,border=NA,col=twilight.col[2])
     sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
   } else {
     plot(day,hour,
@@ -644,7 +644,7 @@ twilight.profiles <- function(tagdata,twilights,
     }
     ## Shade crepuscular period
     if(!is.null(twilights$Start) & !is.null(twilights$End)) {
-        rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col=twilight.col[3])
+        rect(twilights$Start[sel],-1,twilights$End[sel],ymax+10,border=NA,col=twilight.col[3])
     }
     ## Overlay the light profile for the previous day
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
@@ -660,9 +660,9 @@ twilight.profiles <- function(tagdata,twilights,
     if(!is.null(twilights$Start) & !is.null(twilights$End)) {
       plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
       tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
-                     border=NA,col=twilight.col[1])
+                     offset=offset,border=NA,col=twilight.col[1])
       tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
-                     border=NA,col=twilight.col[2])
+                     offset=offset,border=NA,col=twilight.col[2])
       sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
     } else {
       plot(day,hour,
@@ -810,9 +810,9 @@ twilight.edit <- function(tagdata,twilights,offset=0,extend=18,threshold=NULL,
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
 crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
-                           twilight.col=c("dodgerblue","firebrick","grey95"),
-                           light.col=c("#CCFFCC","black","#CCCCFF"),
-                           threshold.col=c("red")) {
+                             twilight.col=c("dodgerblue","firebrick","grey95"),
+                             light.col=c("#CCFFCC","black","#CCCCFF"),
+                             threshold.col=c("red")) {
 
   ## Extract date and light
   date <- tagdata$Date
@@ -829,9 +829,9 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
   ## Plot twilight times and allow user to select twilight
   plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
   tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
-                 border=NA,col=twilight.col[1])
+                 offset=offset,border=NA,col=twilight.col[1])
   tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
-                 border=NA,col=twilight.col[2])
+                 offset=offset,border=NA,col=twilight.col[2])
   sel <- identify(c(day,day,day),c(hour,hour-24,hour+24),n=1,plot=F)
 
   ## While the user has selected a twilight
@@ -847,7 +847,7 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
       abline(h=threshold,col=threshold.col)
     }
     ## Shade crepuscular period
-    rect(twilights$Start[sel],-1,twilights$End[sel],70,border=NA,col=twilight.col[3])
+    rect(twilights$Start[sel],-1,twilights$End[sel],ymax+10,border=NA,col=twilight.col[3])
     ## Overlay the light profile for the previous day
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
     lines(date[keep]+86400,light[keep],type="l",col=light.col[1])
@@ -871,9 +871,9 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=4,threshold=NULL,
     ## Plot twilight times and allow user to select twilight
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
     tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
-                   border=NA,col=twilight.col[1])
+                   offset=offset,border=NA,col=twilight.col[1])
     tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
-                   border=NA,col=twilight.col[2])
+                   offset=offset,border=NA,col=twilight.col[2])
     sel <- identify(day,hour,n=1,plot=F)
   }
   par(opar)
@@ -1244,9 +1244,9 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   select.draw <- function() {
     plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
     tsimage.ribbon(twilights$Start[twilights$Rise],twilights$End[twilights$Rise],
-                   border=NA,col=twilight.col[1])
+                   offset=offset,border=NA,col=twilight.col[1])
     tsimage.ribbon(twilights$Start[!twilights$Rise],twilights$End[!twilights$Rise],
-                   border=NA,col=twilight.col[2])
+                   offset=offset,border=NA,col=twilight.col[2])
     points(day[index],hour[index],pch=16)
   }
 
