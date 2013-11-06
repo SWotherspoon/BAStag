@@ -993,7 +993,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     lines(x,y,col=col)
     if(show.obs) points(x,y,pch=16,cex=point.cex,col=col)
     ## Selection rectangles
-    rx <- grconvertY(c(0,1),from="npc",to="user")
+    rx <- grconvertX(c(0,1),from="npc",to="user")
     ry <- grconvertY(c(1.01,1.03),from="npc",to="user")
     rect(rx[1],ry[1],rx[2],ry[2],border=NA,col="white",xpd=NA)
     if(any(selected)) {
