@@ -19,7 +19,7 @@ The package is easily built with RStudio
 
 5. Install dependencies [SGAT](https://github.com/SWotherspoon/SGAT) and its dependencies.
 
-6. Clone the repository from GitHub (https://github.com/SWotherspoon/BAStags).
+6. Clone the repository from GitHub (https://github.com/SWotherspoon/BAStag).
 
 7. Create an Rstudio project in the folder containing this README file.
 
