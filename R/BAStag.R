@@ -741,7 +741,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
     select.draw()
     devset(profile.dev)
     profile.draw()
-    bringToTop(profile.dev)
+    ###bringToTop(profile.dev)
     NULL
   }
 
@@ -815,7 +815,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   X11(width=width,height=height)
   select.draw()
   select.dev <- dev.cur()
-  bringToTop(select.dev)
+  ###bringToTop(select.dev)
   setGraphicsEventHandlers(
     which=select.dev,
     prompt="Select Twilight",
@@ -1018,7 +1018,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     devset(profile.dev)
     profile.init()
     profile.draw()
-    bringToTop(profile.dev)
+    ###bringToTop(profile.dev)
     NULL
   }
 
@@ -1134,7 +1134,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     onMouseDown=prfOnMouseDown,
     onMouseMove=prfOnMouseMove,
     onKeybd=onKeybd)
-  bringToTop(select.dev)
+  ###bringToTop(select.dev)
   ## Monitor for events
   tryCatch({
       getGraphicsEvent()
