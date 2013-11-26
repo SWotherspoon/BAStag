@@ -607,6 +607,9 @@ drift.adjust <- function(time,start,end) {
 ##' Note however, no actual change to the selection is made until the
 ##' candidate edits are accepted depressing the 'a' key.
 ##'
+##' Each twilight may be marked with the an integer 0 to 9 with the
+##' numeric keys. By default each day is given the mark 0.
+##'
 ##' In either window
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
@@ -616,6 +619,7 @@ drift.adjust <- function(time,start,end) {
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous twilight \cr
 ##' 'Right arrow' \tab Jump to ext twilight \cr
+##' '0'-'9' \tab Mark this twilight \cr
 ##' }
 ##'
 ##' @title Edit twilights
@@ -643,7 +647,7 @@ drift.adjust <- function(time,start,end) {
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
 twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
-                           twilight.col=c("dodgerblue","firebrick","grey60"),
+                           twilight.col=c("dodgerblue","firebrick","grey80"),
                            light.col=c("#CCFFCC","black","#CCCCFF"),
                            threshold.col=c("red","grey95"),point.cex=0.5,width=10,height=5) {
 
@@ -653,6 +657,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   ## Order twilights and check deleted
   twilights <- twilights[order(twilights$Twilight),]
   if(is.null(twilights$Deleted)) twilights$Deleted <- logical(nrow(twilights))
+  if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
   ## Extract date and hour of twilight
   day <- twilights$Twilight
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
@@ -663,11 +668,13 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   ## Cached data subsets
   index <- 1
   twl <- twilights$Twilight[index]
+  marker <- twilights$Marker[index]
+  deleted <- twilights$Deleted[index]
   twls <- NULL
   edit.pt <- NULL
   dteA <- dteB <- dteC <- NULL
   lgtA <- lgtB <- lgtC <- NULL
-  deleted <- FALSE
+
   changed <- FALSE
   show.obs <- FALSE
 
@@ -676,6 +683,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
     index <<- k
     twl <<- twilights$Twilight[index]
     deleted <<- twilights$Deleted[index]
+    marker <<- twilights$Marker[index]
     keep <- (twilights$Twilight >= twl-3600*extend) & (twilights$Twilight <= twl+3600*extend)
     keep[index] <- FALSE
     twls <<- twilights$Twilight[keep]
@@ -697,21 +705,24 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   devset <- function(dev) {
     if(dev.cur()!=dev) dev.set(dev)
   }
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
 
-  ## Draw the selection window
-  select.draw <- function() {
+  ## Draw the twilights window
+  twlght.draw <- function() {
     plot(day,hour,
          pch=16,cex=point.cex,
          xlab="Date",ylab="Hour",
          ylim=c(offset,offset+24),
-         col=twilight.col[ifelse(twilights$Rise,1,2)])
-    points(day[index],hour[index],pch=16,cex=point.cex)
+         col=twilight.col[ifelse(twilights$Deleted,3,ifelse(twilights$Rise,1,2))])
+    points(day[index],hour[index],pch=3)
   }
 
   ## Draw light profiles
   profile.draw <- function() {
     ## Draw axes for light profiles
-    plot(dteB,lgtB,xlab="",ylab="Light",type="n",xaxt="n",main=as.character(twl))
+    mlab <- if(marker>0) paste("Marker: ",marker) else ""
+    plot(dteB,lgtB,xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
     axis.POSIXct(1,x=dteB,format="%H:%M")
     ## Overlay with light threshold
     if(!is.null(threshold))
@@ -727,21 +738,21 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   }
 
 
-  ## onMouseDown callback for selection window.
-  selOnMouseDown <- function(buttons,x,y) {
+  ## onMouseDown callback for twilights window.
+  twlOnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
-    devset(select.dev)
+    devset(twlght.dev)
     x <- grconvertX(x,from="ndc",to="user")
     y <- grconvertY(y,from="ndc",to="user")
     r <- ((x-as.numeric(day))/3600)^2+((y-hour+12)%%24-12)^2
     k <- which.min(r)
     ## Redraw
     cache(k)
-    devset(select.dev)
-    select.draw()
+    devset(twlght.dev)
+    twlght.draw()
     devset(profile.dev)
     profile.draw()
-    ###bringToTop(profile.dev)
+    focus(profile.dev)
     NULL
   }
 
@@ -781,10 +792,14 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
       edit.pt <<- NULL
       changed <<- FALSE
     }
+    if(key >= "0" && key <= "9") {
+      marker <<- as.numeric(key)
+      twilights$Marker[index] <<- marker
+    }
 
     ## Redraw
-    devset(select.dev)
-    select.draw()
+    devset(twlght.dev)
+    twlght.draw()
     devset(profile.dev)
     profile.draw()
     NULL
@@ -792,13 +807,13 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 
   ## onMouseDown callback for profile window
   prfOnMouseDown <- function(buttons,x,y) {
-    ## Button 1 -> record location and do complete draw
+    ## Button 1 -> record location
     if(length(buttons) > 0 && buttons[1]==0) {
       changed <<- TRUE
       edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
                     grconvertY(y,from="ndc",to="user"))
     }
-    ## Button 2 -> accept new selection
+    ## Button 2 -> toggle deletion
     if(length(buttons) > 0 && buttons[1]==2) {
       deleted <- (deleted==FALSE)
       twilights$Deleted[index] <<- deleted
@@ -809,17 +824,17 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   }
 
 
-  ## Set up selection window
+  ## Set up twilights window
   index <- 1
   cache(index)
   X11(width=width,height=height)
-  select.draw()
-  select.dev <- dev.cur()
-  ###bringToTop(select.dev)
+  twlght.draw()
+  twlght.dev <- dev.cur()
+  focus(twlght.dev)
   setGraphicsEventHandlers(
-    which=select.dev,
+    which=twlght.dev,
     prompt="Select Twilight",
-    onMouseDown=selOnMouseDown,
+    onMouseDown=twlOnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
   X11(width=width,height=height)
@@ -834,7 +849,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   tryCatch({
       getGraphicsEvent()
       dev.off(profile.dev)
-      dev.off(select.dev)
+      dev.off(twlght.dev)
       twilights
   }, finally=twilights)
 }
@@ -860,6 +875,9 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' Note however, no actual change to the selection is made until the
 ##' candidate edits are accepted depressing the 'a' key.
 ##'
+##' Each twilight may be marked with the an integer 0 to 9 with the
+##' numeric keys. By default each day is given the mark 0.
+##'
 ##' In either window
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
@@ -869,6 +887,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous twilight \cr
 ##' 'Right arrow' \tab Jump to ext twilight \cr
+##' '0'-'9' \tab Mark this twilight \cr
 ##' }
 ##'
 ##' @title Edit crepuscular segments
@@ -899,7 +918,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @export
 crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
-                              twilight.col=c("dodgerblue","firebrick","grey60"),
+                              twilight.col=c("dodgerblue","firebrick","grey80"),
                               light.col=c("#CCFFCC","black","#CCCCFF"),
                               threshold.col="red",selected.col=c("blue","red"),
                               point.cex=0.5,width=10,height=5) {
@@ -908,8 +927,9 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   date <- tagdata$Date
   light <- tagdata$Light
   ## Order twilights
+  if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
   twilights <- twilights[order(twilights$Twilight,twilights$Start),
-                         c("Twilight","Rise","Start","End")]
+                         c("Twilight","Rise","Start","End","Marker")]
   ## Extract date and hour of twilight
   day <- twilights$Twilight
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
@@ -918,6 +938,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   index <- 1
   indices <- as.numeric(factor(as.numeric(twilights$Twilight)))
   twl <- NULL
+  marker <- 0
   dteA <- dteB <- dteC <- NULL
   lgtA <- lgtB <- lgtC <- NULL
   selected <- NULL
@@ -929,6 +950,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   cache <- function(k) {
     index <<- k
     twl <<- twilights$Twilight[which(index==indices)[1]]
+    marker <<- twilights$Marker[which(index==indices)[1]]
     changed <<- FALSE
     ## Get profiles
     keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
@@ -950,9 +972,11 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   devset <- function(dev) {
     if(dev.cur()!=dev) dev.set(dev)
   }
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
 
-  ## Draw the selection window
-  select.draw <- function() {
+  ## Draw the twilights window
+  twlght.draw <- function() {
     plot(day,hour,type="n",
          xlab="Date",ylab="Hour",
          ylim=c(offset,offset+24))
@@ -964,13 +988,14 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     tsimage.ribbon(.POSIXct(tapply(set$Start,set$Twilight,min),"GMT"),
                    .POSIXct(tapply(set$End,set$Twilight,max),"GMT"),
                    offset=offset,border=NA,col=twilight.col[2])
-    points(day[index],hour[index],pch=16)
+    points(day[index],hour[index],pch=3)
   }
 
 
   ## Draw axes for light profiles
   profile.init <- function() {
-    plot(dteB,lgtB,xlab="",ylab="Light",type="n",xaxt="n",main=as.character(twl))
+    mlab <- if(marker>0) paste("Marker: ",marker) else ""
+    plot(dteB,lgtB,xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
     axis.POSIXct(1,x=dteB,format="%H:%M")
   }
 
@@ -1004,21 +1029,21 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   }
 
 
-  ## onMouseDown callback for selection window.
-  selOnMouseDown <- function(buttons,x,y) {
+  ## onMouseDown callback for twilights window.
+  twlOnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
-    devset(select.dev)
+    devset(twlght.dev)
     xs <- grconvertX(c(day,day,day),from="user",to="ndc")
     ys <- grconvertY(c(hour-24,hour,hour+24),from="user",to="ndc")
     k <- (which.min((x-xs)^2+(y-ys)^2)-1)%%length(day)+1
     ## Redraw
     cache(k)
-    devset(select.dev)
-    select.draw()
+    devset(twlght.dev)
+    twlght.draw()
     devset(profile.dev)
     profile.init()
     profile.draw()
-    ###bringToTop(profile.dev)
+    focus(profile.dev)
     NULL
   }
 
@@ -1057,7 +1082,8 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
       d[[index]] <- cbind(Twilight=d[[index]]$Twilight[1],
                           Rise=d[[index]]$Rise[1],
                           data.frame(Start=dteB[diff(c(FALSE,selected))==1],
-                                     End=dteB[diff(c(selected,FALSE))==-1]))
+                                     End=dteB[diff(c(selected,FALSE))==-1]),
+                          Marker=d[[index]]$Marker[1])
       d <- do.call("rbind",d)
       d$Twilight <- .POSIXct(d$Twilight,"GMT")
       d$Start <- .POSIXct(d$Start,"GMT")
@@ -1066,10 +1092,14 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
       indices <<- as.numeric(factor(as.numeric(twilights$Twilight)))
       changed <<- FALSE
     }
+    if(key >= "0" && key <= "9") {
+      marker <<- as.numeric(key)
+      twilights$Marker[which(index==indices)] <<- marker
+    }
 
     ## Redraw
-    devset(select.dev)
-    select.draw()
+    devset(twlght.dev)
+    twlght.draw()
     devset(profile.dev)
     profile.init()
     profile.draw()
@@ -1112,16 +1142,16 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     NULL
   }
 
-  ## Set up selection window
+  ## Set up twilights window
   index <- 1
   cache(index)
   X11(width=width,height=height)
-  select.draw()
-  select.dev <- dev.cur()
+  twlght.draw()
+  twlght.dev <- dev.cur()
   setGraphicsEventHandlers(
-    which=select.dev,
+    which=twlght.dev,
     prompt="Select Twilight",
-    onMouseDown=selOnMouseDown,
+    onMouseDown=twlOnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
   X11(width=width,height=height)
@@ -1134,12 +1164,12 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
     onMouseDown=prfOnMouseDown,
     onMouseMove=prfOnMouseMove,
     onKeybd=onKeybd)
-  ###bringToTop(select.dev)
+  focus(twlght.dev)
   ## Monitor for events
   tryCatch({
       getGraphicsEvent()
       dev.off(profile.dev)
-      dev.off(select.dev)
+      dev.off(twlght.dev)
       twilights
   }, finally=twilights)
 }
