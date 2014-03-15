@@ -558,9 +558,11 @@ twilight.adjust <- function(twilights,interval) {
 ##' @param max.adjust adjust twilights for tags that report the
 ##' maximum light interval observed in the preceeding sampling
 ##' interval.
+##' @param col colors for increasing and decreasing zenith angles
 ##' @param ... additional arguments to pass to \code{plot}.
 ##' @export
-threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
+threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,
+                                col=c("dodgerblue","firebrick"),...) {
   Light <- tagdata$Light
   Zenith <- zenith(solar(tagdata$Date),lon,lat)
   if(max.adjust) {
@@ -568,7 +570,9 @@ threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,...) {
     Light <- Light[-1]
     Zenith <- pmin(Zenith[-1],Zenith[-n])
   }
-  plot(Zenith,Light,...)
+  n <- length(Zenith)
+  dz <- Zenith[c(2:n,n)] - Zenith[c(1,1:(n-1))]
+  plot(Zenith,Light,col=ifelse(dz > 0,col[1],col[2]),...)
 }
 
 
