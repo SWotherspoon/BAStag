@@ -141,7 +141,7 @@ tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
   day <- seq(date[1]-pad*dt,by=m*dt,length=n+1)
   y <- matrix(c(rep(NA,pad),y,rep(NA,m*n-pad-length(y))),m,n)
   ## Show as image, with hours wrapped to [0,24].
-  image(day,hour,t(y),axes=F,xlab=xlab,ylab=ylab,...)
+  image(as.numeric(day),hour,t(y),axes=F,xlab=xlab,ylab=ylab,...)
   axis.POSIXct(1,day)
   axis(2,at=seq(0,48,by=4),labels=seq(0,48,by=4)%%24)
   box()
@@ -652,8 +652,8 @@ drift.adjust <- function(time,start,end) {
 ##' @export
 twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
                            twilight.col=c("dodgerblue","firebrick","grey80"),
-                           light.col=c("#CCFFCC","black","#CCCCFF"),
-                           threshold.col=c("red","grey95"),point.cex=0.5,width=10,height=5) {
+                           light.col=c("#AAFFAA","black","#AAAAFF"),
+                           threshold.col=c("#FFAAAA","grey90"),point.cex=0.5,width=10,height=5) {
 
   ## Extract date and light
   date <- tagdata$Date
@@ -923,8 +923,8 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' @export
 crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
                               twilight.col=c("dodgerblue","firebrick","grey80"),
-                              light.col=c("#CCFFCC","black","#CCCCFF"),
-                              threshold.col="red",selected.col=c("blue","red"),
+                              light.col=c("#AAFFAA","black","#AAAAFF"),
+                              threshold.col="#FFAAAA",selected.col=c("blue","red"),
                               point.cex=0.5,width=10,height=5) {
 
   ## Extract date and light
