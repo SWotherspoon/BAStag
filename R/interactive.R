@@ -42,7 +42,7 @@
 ##' @param extend the period (in hours) before and after twilight for
 ##' which the light profile should be plotted.
 ##' @param threshold the light threshold that defines twilight.
-##' @param ymax the maximum light level to plot.
+##' @param lmax the maximum light level to plot.
 ##' @param twilight.col the colors of the estimated sunrise and sunset times.
 ##' @param light.col the colors of the light profiles for the day
 ##' before, the selected twilight and the day after.
@@ -56,7 +56,7 @@
 ##' \item{\code{Rise}}{logical indicating sunrise}
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
-twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
+twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
                            twilight.col=c("dodgerblue","firebrick","grey80"),
                            light.col=c("#AAFFAA","black","#AAAAFF"),
                            threshold.col=c("#FFAAAA","grey90"),point.cex=0.5,width=10,height=5) {
@@ -132,7 +132,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
   profile.draw <- function() {
     ## Draw axes for light profiles
     mlab <- if(marker>0) paste("Marker: ",marker) else ""
-    plot(dteB,lgtB,xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
+    plot(dteB,lgtB,ylim=c(0,lmax),xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
     axis.POSIXct(1,x=dteB,format="%H:%M")
     ## Overlay with light threshold
     if(!is.null(threshold))
@@ -310,7 +310,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' @param extend the period (in hours) before and after twilight for
 ##' which the light profile should be plotted.
 ##' @param threshold the light threshold that defines twilight.
-##' @param ymax the maximum light level to plot.
+##' @param lmax the maximum light level to plot.
 ##' @param twilight.col the colors of the estimated sunrise and sunset intervals.
 ##' @param light.col the colors of the light profiles for the day
 ##' before, the selected twilight and the day after.
@@ -327,7 +327,7 @@ twilight.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ym
 ##' \item{\code{Start}}{date of first observation in the crepuscular segment}
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @export
-crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,ymax=64,
+crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
                               twilight.col=c("dodgerblue","firebrick","grey80"),
                               light.col=c("#AAFFAA","black","#AAAAFF"),
                               threshold.col="#FFAAAA",selected.col=c("blue","red"),
@@ -405,7 +405,7 @@ crepuscular.editW <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL
   ## Draw axes for light profiles
   profile.init <- function() {
     mlab <- if(marker>0) paste("Marker: ",marker) else ""
-    plot(dteB,lgtB,xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
+    plot(dteB,lgtB,ylim=c(0,lmax),xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
     axis.POSIXct(1,x=dteB,format="%H:%M")
   }
 
