@@ -228,7 +228,7 @@ tsimage.ribbon <- function(date1,date2,offset,...) {
 light.image <- function(tagdata,offset=0,lmax=64,xlab="Date",ylab="Hour",...) {
 
   tsimage(tagdata$Date,tagdata$Light,offset,
-          zlim=c(0,lmax),col=grey(seq(0,1,length=64)),
+          zlim=c(0,lmax),col=grey(seq(0,1,length=256)),
           xlab=xlab,ylab=ylab,...)
 }
 
