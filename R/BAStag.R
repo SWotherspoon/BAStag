@@ -560,6 +560,7 @@ twilight.adjust <- function(twilights,interval) {
 ##' interval.
 ##' @param col colors for increasing and decreasing zenith angles
 ##' @param ... additional arguments to pass to \code{plot}.
+##' @importFrom SGAT zenith solar
 ##' @export
 threshold.calibrate <- function(tagdata,lon,lat,max.adjust=TRUE,
                                 col=c("dodgerblue","firebrick"),...) {
