@@ -1,3 +1,235 @@
+##' Interactively select data subsets
+##'
+##' Interactively select data subsets based on the light profile.  An
+##' image represeting the recorded light levels over time displayed,
+##' and the user can select contiguous subsets of data with a mouse
+##' drag.
+##'
+##' Higher time resolution images centred on the endpoints of the
+##' selected subset are shown in a second window.  The left and right
+##' and down and up arrow keys can be used to adjust the selected
+##' endpoints by 24 hours for fine scale adjustment.
+##'
+##' Once a suitable subset is selected, the selection is accepted by
+##' depressing the 'a' key, and new subset can be selected.
+##'
+##' Each twilight may be marked with the an integer 0 to 9 with the
+##' numeric keys. By default each day is given the mark 0.
+##'
+##' In either window
+##' \tabular{ll}{
+##' 'q' \tab Quits, returning the dataframe selected subsets \cr
+##' 'a' \tab Accepts the candidate selection \cr
+##' '+'/'-' \tab Adjust zoom scale of high resolution images\cr
+##' 'Left/Right arrow' \tab Adjust selected start point \cr
+##' 'Down/Up arrow' \tab Adjust selected end point \cr
+##' }
+##'
+##' @title Subset selection
+##' @param tagdata a datframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' and light levels recorded by the tag.
+##' @param offset the starting hour for the vertical axes.
+##' @param extend the period (in days) before and after the endpoints of the selection to be shown in the zoom window.
+##' @param lmax the maximum light level to plot.
+##' @param width width of the interface windows.
+##' @param height height of the interface windows.
+##' @return the dataframe of the selected subsets
+##' \item{\code{Start}}{start time of subset}
+##' \item{\code{End}}{end time of subset}
+##' @export
+select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
+                          width=10,height=5) {
+
+  ## Round down to nearest offset
+  floorDate <- function(date) {
+    date - ((as.hour(date)-offset)%%24)*60*60
+  }
+
+  ## Round up to nearest offset
+  ceilingDate <- function(date) {
+    date + ((offset-as.hour(date))%%24)*60*60
+  }
+
+  minDate <- floorDate(min(tagdata$Date))
+  maxDate <- ceilingDate(max(tagdata$Date))
+  startDate <- minDate
+  endDate <- maxDate
+  subsets <- data.frame(Start=NULL,End=NULL)
+
+  ## Select device
+  devset <- function(dev) {
+    if(dev.cur()!=dev) dev.set(dev)
+  }
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+
+  ## Compute the zoom range
+  zoom.range <-  function(date) {
+    start <- floorDate(max(date - extend*24*60*60,minDate))
+    end <- ceilingDate(min(start+2*extend*24*60*60,maxDate))
+    start <- floorDate(max(end - 2*extend*24*60*60,minDate))
+    c(start=start,end=end)
+  }
+
+  ## Draw the selection window
+  slct.draw <- function() {
+    ## Plot image
+    light.image(tagdata,offset=offset,lmax=lmax)
+  }
+
+  ## Draw the selection rectangle
+  rect.draw <- function() {
+    ## Selection rectangles
+    rx <- grconvertX(c(0,1),from="npc",to="user")
+    ry <- grconvertY(c(1.01,1.03),from="npc",to="user")
+    rect(rx[1],ry[1],rx[2],ry[2],border=NA,col="white",xpd=NA)
+    for(k in seq_len(nrow(subsets)))
+      rect(subsets$Start,ry[1],subsets$End,ry[2],border=NA,col="blue",xpd=NA)
+    if(!is.null(startDate) && !is.null(endDate) && endDate!=startDate)
+      rect(startDate,ry[1],endDate,ry[2],border=NA,col="red",xpd=NA)
+  }
+
+  ## Draw zoomed ends
+  zoom.draw <- function() {
+    if(!is.null(startDate) && !is.null(endDate)) {
+      par(mfrow=c(1,2))
+      light.image(tagdata,offset=offset,lmax=lmax,xlim=zoom.range(startDate))
+      abline(v=startDate,col="red")
+      light.image(tagdata,offset=offset,lmax=lmax,xlim=zoom.range(endDate))
+      abline(v=endDate,col="red")
+    }
+  }
+
+  ## onMouseDown callback for selection window.
+  slctOnMouseDown <- function(buttons,x,y) {
+    ## Determine selected profile.
+    devset(slct.dev)
+    date <- floorDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
+    date <- min(max(date,minDate),maxDate)
+    startDate <<- date
+    endDate <<- date
+    ## Redraw selection rectangles
+    devset(slct.dev)
+    rect.draw()
+    NULL
+  }
+
+  ## onMouseMove callback for selection window
+  slctOnMouseMove <- function(buttons,x,y) {
+    ## Button 1 drag to select range
+    if(length(buttons) > 0 && buttons[1]==0) {
+      date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
+      date <- min(max(date,minDate),maxDate)
+      if(date < startDate) {
+        endDate <<- startDate
+        startDate <<- date
+      } else {
+        endDate <<- date
+      }
+      devset(slct.dev)
+      rect.draw()
+    }
+    NULL
+  }
+
+  ## onMouseUp callback for selection window
+  slctOnMouseUp <- function(buttons,x,y) {
+    ## Button 1 drag to select range
+    if(length(buttons)==0) {
+      date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
+      date <- min(max(date,minDate),maxDate)
+      if(date < startDate) {
+        endDate <<- startDate
+        startDate <<- date
+      } else {
+        endDate <<- date
+      }
+      devset(slct.dev)
+      rect.draw()
+      devset(zoom.dev)
+      zoom.draw()
+    }
+    NULL
+  }
+
+  ## onKeybd callback for both windows
+  onKeybd <- function(key) {
+    ## q quits
+    if(key=="q") return(-1)
+    ## +/- : zoom time window around selection
+    if(key=="+") {
+      extend <<- max(extend-1,1)
+    }
+    if(key=="-") {
+      extend <<- min(extend+1,20)
+    }
+    ## Left/Right - move start point
+    if(key=="Left") {
+      startDate <<- floorDate(max(startDate - 24*60*60,minDate))
+    }
+    if(key=="Right") {
+      startDate <<- floorDate(min(startDate + 24*60*60,maxDate))
+    }
+    ## Down/Up - move end point
+    if(key=="Down") {
+      endDate <<- ceilingDate(max(endDate - 24*60*60,minDate))
+    }
+    if(key=="Up") {
+      endDate <<- ceilingDate(min(endDate + 24*60*60,maxDate))
+    }
+    ## a : accept current selection
+    if(key=="a") {
+      subsets <<- rbind(subsets,data.frame(Start=startDate,End=endDate))
+      startDate <<- NULL
+      endDate <<- NULL
+    }
+
+    ## Redraw
+    devset(slct.dev)
+    rect.draw()
+    devset(zoom.dev)
+    zoom.draw()
+    NULL
+  }
+
+  ## Set up master window
+  X11(width=width,height=height)
+  slct.draw()
+  rect.draw()
+  slct.dev <- dev.cur()
+  focus(slct.dev)
+  setGraphicsEventHandlers(
+    which=slct.dev,
+    prompt="Select Subset",
+    onMouseDown=slctOnMouseDown,
+    onMouseMove=slctOnMouseMove,
+    onMouseUp=slctOnMouseUp,
+    onKeybd=onKeybd)
+  ## Set up zoom window
+  X11(width=width,height=height)
+  zoom.dev <- dev.cur()
+  zoom.draw()
+  setGraphicsEventHandlers(
+    which=zoom.dev,
+    prompt="Endpoint",
+    onKeybd=onKeybd)
+  ## Monitor for events
+  tryCatch({
+    getGraphicsEvent()
+      dev.off(slct.dev)
+      dev.off(zoom.dev)
+      subsets
+    }, finally=subsets)
+}
+
+
+
+
+
+
+
+
 ##' Interactively edit twilight times
 ##'
 ##' Interactively edit times of twilight based on the light profile.
@@ -25,7 +257,8 @@
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 ##' 'a' \tab Accepts the candidate edit \cr
 ##' 'x' \tab Resets the selection \cr
-##' 'p' \tab Toggles the display of individual points \cr
+##' 'p'
+##' \tab Toggles the display of individual points \cr
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous twilight \cr
 ##' 'Right arrow' \tab Jump to ext twilight \cr
