@@ -330,7 +330,6 @@ find.twilights <- function(tagdata,threshold,include,
   ss <- date[a]+(threshold-light[a])/(light[a+1]-light[a])*(date[a+1]-date[a])
   sr <- date[b]+(threshold-light[b])/(light[b+1]-light[b])*(date[b+1]-date[b])
 
-
   data.frame(Twilight=.POSIXct(as.vector(t(cbind(ss,sr))),"GMT"),
              Rise=rep(c(F,T),length(ss)))
 }
