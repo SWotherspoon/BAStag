@@ -435,7 +435,7 @@ find.crepuscular <- function(tagdata,twilights,
 ##' If \code{filter.threshold} is non \code{NULL}, the light levels
 ##' are filtered to remove shaded observations.  The light levels at
 ##' sunrise and sunset are assumed to be monotonic increasing, and the
-##' running mximum in the direction of day is calculated.  Light
+##' running maximum in the direction of day is calculated.  Light
 ##' levels that are \code{filter.threshold} units below the running
 ##' maximum are removed.
 ##'
