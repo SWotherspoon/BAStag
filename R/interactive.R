@@ -34,7 +34,8 @@ default.palette <- c(red="#E41A1C", blue="#377EB8", green="#4DAF4A", violet="#98
 ##' \code{Light} that are the sequence of sample times (as POSIXct)
 ##' and light levels recorded by the tag.
 ##' @param offset the starting hour for the vertical axes.
-##' @param extend the period (in days) before and after the endpoints of the selection to be shown in the zoom window.
+##' @param extend the period (in days) before and after the endpoints
+##' of the selection to be shown in the zoom window.
 ##' @param lmax the maximum light level to plot.
 ##' @param width width of the interface windows.
 ##' @param height height of the interface windows.
@@ -226,6 +227,120 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
       subsets
     }, finally=subsets)
 }
+
+
+
+
+##' Interactively select periods of night for estimating twilights
+##'
+##' Interactively select the periods of night that will be used by
+##' \code{find.twilights} to seek sunset, sunrise pairs that
+##' correspond to a given light threshold.  Left mouse button clicks
+##' select segments to be included in the search, and right button
+##' clicks select segments to be excluded from the search.
+##'
+##' @title Select nights
+##' @param tagdata a datframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' and light levels recorded by the tag.
+##' @param threshold the light threshold that defines twilight.
+##' @param offset the starting hour for the vertical axes.
+##' @param extend a time in minutes. The function seeks periods of
+##' darkness that differ from one another by 24 hours plus or minus
+##' this interval.
+##' @param dark.min a time in minutes. Periods of darkness shorter
+##' than this interval will be excluded.
+##' @param point.cex expansion factor for plot points.
+##' @param lmax the maximum light level to plot.
+##' @param width width of the interface windows.
+##' @param height height of the interface windows.
+##' @param palette a colour palette of 2 colours.
+##' @return A dataframe with columns
+##' \item{\code{Twilight}}{times of twilight}
+##' \item{\code{Rise}}{logical indicating sunrise}
+##' where each row corresponds to a single twilight.
+##' @export
+select.night <- function(tagdata,threshold,offset=0,
+                         extend=0,dark.min=0,
+                         point.cex=0.6,lmax=64,
+                         width=10,height=5,
+                         palette=default.palette[c(5,2,3,4)]) {
+
+  twilights <- NULL
+  include <- NULL
+  exclude <- NULL
+
+  ## Select device
+  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+
+  ## Draw the selection window
+  slct.draw <- function() {
+    ## Plot image
+    light.image(tagdata,offset=offset,lmax=lmax)
+    if(!is.null(twilights))
+      tsimage.points(twilights$Twilight,offset=offset,
+                     pch=16,cex=point.cex,
+                     col=palette[ifelse(twilights$Rise,1,2)])
+    if(length(include)>0) tsimage.points(include,offset=offset,pch=16,col=palette[3])
+    if(length(exclude)>0) tsimage.points(exclude,offset=offset,pch=16,col=palette[4])
+  }
+
+  ## onMouseDown callback for selection window.
+  slctOnMouseDown <- function(buttons,x,y) {
+    ## Determine selected profile.
+    if(length(buttons) > 0 && buttons[1]==0) {
+      devset(slct.dev)
+      day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
+      hour <- grconvertY(y,from="ndc",to="user")
+      date <- .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
+      include <<- c(date,include)
+    }
+    if(length(buttons) > 0 && buttons[1]==2) {
+      devset(slct.dev)
+      day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
+      hour <- grconvertY(y,from="ndc",to="user")
+      date <- .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
+      exclude <<- c(date,exclude)
+    }
+    twilights <<- find.twilights(tagdata,threshold=threshold,
+                                 include=include,exclude=exclude,
+                                 extend=extend,dark.min=dark.min)
+    devset(slct.dev)
+    slct.draw()
+    NULL
+  }
+
+  ## onKeybd callback for both windows
+  onKeybd <- function(key) {
+    ## q quits
+    if(key=="q") return(-1)
+
+    ## Redraw
+    devset(slct.dev)
+    slct.draw()
+    NULL
+  }
+
+  ## Set up master window
+  X11(width=width,height=height)
+  slct.draw()
+  slct.dev <- dev.cur()
+  focus(slct.dev)
+  setGraphicsEventHandlers(
+    which=slct.dev,
+    prompt="Select Seeds",
+    onMouseDown=slctOnMouseDown,
+    onKeybd=onKeybd)
+  tryCatch({
+    getGraphicsEvent()
+    dev.off(slct.dev)
+    twilights
+  }, finally=twilights)
+}
+
+
 
 
 
@@ -648,7 +763,6 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 
     ## Show selection
     col <- palette[if(changed) 7 else (if(rise) 1 else 2)]
-    print(rise)
     ## Hightlight selected segments
     x <- ifelse(selected,dteB,NA)
     y <- ifelse(selected,lgtB,NA)
@@ -814,12 +928,6 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 }
 
 
-
-
-
-
-
-
 ##' Interactively edit a path of twilight locations.
 ##'
 ##' Interactively edit a path of twilight locations.  A plot of the
@@ -836,7 +944,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' In either window
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
-##' 'a' \tab Toggle auto advance mode
+##' 'a' \tab Toggle auto advance mode \cr
 ##' 'r' \tab Resets the zoom to the encompass the entire track \cr
 ##' 'z' \tab Zooms to the locations surrounding the current location \cr
 ##' '+'/'-' \tab Zoom in or out \cr
@@ -844,6 +952,14 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' 'Right arrow' \tab Jump to next location \cr
 ##' }
 ##'
+##' The user may supply a function \code{plot.map} that plots the
+##' background map.  This must be a function of two arguments
+##' \code{xlim} and \code{ylim} the determine the extent of the plot.
+##'
+##' The user may also supply a function \code{is.invalid} that accepts
+##' the current path as an argument and returns a logical vector
+##' indicating which locations along the path are in some way invalid.
+##' The twilights for these locations will be highlighted.
 ##'
 ##' @title  Edit a path
 ##' @param path a two column matrix of the (lon,lat) locations at the
@@ -851,7 +967,8 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' @param twilights dataframe of twilight times as generated by
 ##' \code{\link{find.twilights}}.
 ##' @param offset the starting hour for the vertical axes.
-##' @param fixed
+##' @param fixed logical vector indicating which locations to hold
+##' fixed.
 ##' @param zenith the solar zenith angle that defines twilight.
 ##' @param aspect aspect ratio of the map.
 ##' @param contours the levels (in minutes) of twilight residuals to
@@ -860,6 +977,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' location to highlight.
 ##' @param auto.advance advance to next point afet edit.
 ##' @param plot.map A function to plot the background map.
+##' @param is.invalid A function check if a location is not valid.
 ##' @param point.cex expansion factor for plot points.
 ##' @param width width of the interface windows.
 ##' @param height height of the interface windows.
@@ -868,7 +986,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' @export
 select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
                         contours=c(10,20,50),extend=1,auto.advance=F,
-                        plot.map=function(xlim,ylim) {plot.new(); plot.window(xlim,ylim)},
+                        plot.map=NULL, is.invalid=function(path) logical(nrow(path)),
                         point.cex=0.5,width=10,height=5,
                         palette=default.palette[c(5,2,1,12,3,4)]) {
 
@@ -884,6 +1002,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
   ## Set fixed points
   fixed <- rep(fixed,length.out=nrow(path))
+  invalid <- !fixed | is.invalid(path)
 
   ## Map window parameters
   xlim <- range(path[,1])
@@ -894,6 +1013,13 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   ylim <- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
   ## Cached map
   map <- NULL
+
+  if(is.null(plot.map)) {
+    plot.map <- function(xlim,ylim) {
+      plot.new()
+      plot.window(xlim,ylim)
+    }
+  }
 
   ## Select device
   devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
@@ -906,7 +1032,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
          pch=16,cex=point.cex,
          xlab="Date",ylab="Hour",
          ylim=c(offset,offset+24),
-         col=palette[ifelse(twilights$Rise,1,2)])
+         col=palette[ifelse(invalid,3,ifelse(twilights$Rise,1,2))])
     points(day[index],hour[index],pch=3)
   }
 
@@ -942,7 +1068,6 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     points(path[index,1],path[index,2],col=palette[if(fixed[index]) 4 else 3],pch=16,cex=1)
   }
 
-
   ## onMouseDown callback for twilights window.
   twlOnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
@@ -977,6 +1102,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
       ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
       map <<- NULL
     }
+    ## Zoom to locations surrounding current location
     if(key=="z") {
       ks <- max(1,index-extend):min(nrow(path),index+extend)
       xl <- range(path[ks,1])
@@ -1022,6 +1148,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     if(length(buttons) > 0 && buttons[1]==0 && !fixed[index]) {
       path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
                          grconvertY(y,from="ndc",to="user"))
+      invalid <<- !fixed | is.invalid(path)
       if(auto.advance) index <<- min(index+1,nrow(path))
     }
     ## Button 2 -> centre map
