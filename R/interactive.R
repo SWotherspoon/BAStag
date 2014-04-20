@@ -2,6 +2,91 @@ default.palette <- c(red="#E41A1C", blue="#377EB8", green="#4DAF4A", violet="#98
                      orange="#FF7F00", yellow="#FFFF33", brown="#A65628", pink="#F781BF",
                      black="#000000", grey3="#333333", grey6="#666666", grey9="#999999", greyC="#CCCCCC")
 
+
+image.draw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
+                       point=NULL,ribbon=NULL,mark=NULL,
+                       lmax=64,point.cex=0.6,point.col=NULL,
+                       palette=default.palette[c(5,2,1)]) {
+
+  ## Plot background image
+  if(!is.null(tagdata)) light.image(tagdata,offset=offset,lmax=lmax)
+
+  ## If there is twilight data
+  if(!is.null(twilights)) {
+
+    day <- twilights$Twilight
+    hour <- hour.offset(as.hour(twilights$Twilight),offset)
+
+    ## Initialize plot axes
+    if(is.null(tagdata)) plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
+
+    ## Plot twilight times
+    if(is.null(point.col)) point.col <- palette[ifelse(twilights$Rise,1,2)]
+    if(point) points(day,hour,pch=16,cex=point.cex,col=point.col)
+
+    ## Plot twilights segments
+    if(!is.null(ribbon)) {
+      rise <- twilights[twilights$Rise,]
+      tsimage.ribbon(.POSIXct(tapply(rise$Start,rise$Twilight,min),"GMT"),
+                     .POSIXct(tapply(rise$End,rise$Twilight,max),"GMT"),
+                     offset=offset,border=NA,col=palette[1])
+      set <- twilights[!twilights$Rise,]
+      tsimage.ribbon(.POSIXct(tapply(set$Start,set$Twilight,min),"GMT"),
+                     .POSIXct(tapply(set$End,set$Twilight,max),"GMT"),
+                     offset=offset,border=NA,col=palette[2])
+    }
+    ## Mark points
+    if(!is.null(mark)) points(day[mark],hour[mark],pch=3)
+  }
+}
+
+
+profile.init <- function(date,light,lmax=64,xlab="",main="") {
+  ## Draw axes for light profiles
+  plot(date,light,ylim=c(0,lmax),xlab=xlab,ylab="Light",type="n",xaxt="n",main=main)
+  axis.POSIXct(1,x=date,format="%H:%M")
+}
+
+
+profile.overlay <- function(date,light,threshold=NULL,point=FALSE,
+                            date.prev,light.prev,date.next,light.next,
+                            point.cex=0.6,palette=default.palette[c(9,5,2,1)]) {
+
+  ## Overlay with light threshold
+  if(!is.null(threshold)) abline(h=threshold,col=palette[4])
+  ## Overlay the light profile for the current and surrounding days
+  lines(date.prev+86400,light.prev,col=palette[2])
+  lines(date.next-86400,light.next,col=palette[3])
+  lines(date,light,col=palette[1])
+  ## Overlay observations.
+  if(point) points(dteB,lgtB,col=palette[1],pch=16,cex=point.cex)
+}
+
+selection.rectangle <- function(x1,x2,col,add=FALSE) {
+  ## Determine upper and lower limits
+  rx <- grconvertX(c(0,1),from="npc",to="user")
+  ry <- grconvertY(c(1.01,1.03),from="npc",to="user")
+  ## Over plot with white
+  if(!add) rect(rx[1],ry[1],rx[2],ry[2],border=NA,col="white",xpd=NA)
+  if(length(x1) >0 && length(x2)>0)
+    rect(x1,ry[1],x2,ry[2],border=NA,col=col,xpd=NA)
+}
+
+
+ndc.closest.twilight <- function(x,y,day,hour) {
+  xs <- grconvertX(c(day,day,day),from="user",to="ndc")
+  ys <- grconvertY(c(hour-24,hour,hour+24),from="user",to="ndc")
+  (which.min((x-xs)^2+(y-ys)^2)-1)%%length(day)+1
+}
+
+ndc.image.date <- function(x,y) {
+  day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
+  hour <- grconvertY(y,from="ndc",to="user")
+  date <- .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
+}
+
+
+
 ##' Interactively select data subsets
 ##'
 ##' Interactively select data subsets based on the light profile.  An
@@ -62,9 +147,9 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
   subsets <- data.frame(Start=NULL,End=NULL)
 
   ## Select device
-  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
 
   ## Compute the zoom range
   zoom.range <-  function(date) {
@@ -74,29 +159,22 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
     c(start=start,end=end)
   }
 
-
   ## Draw the selection window
-  slct.draw <- function() {
-    ## Plot image
+  winA.init <- function() {
+    set.device(winA)
     light.image(tagdata,offset=offset,lmax=lmax)
   }
 
   ## Draw the selection rectangles
-  rect.draw <- function() {
-    ## Draw selection rectangles above plot
-    rx <- grconvertX(c(0,1),from="npc",to="user")
-    ry <- grconvertY(c(1.01,1.03),from="npc",to="user")
-    ## White over current rectangles
-    rect(rx[1],ry[1],rx[2],ry[2],border=NA,col="white",xpd=NA)
-    ## Redraw selections
-    for(k in seq_len(nrow(subsets)))
-      rect(subsets$Start,ry[1],subsets$End,ry[2],border=NA,col=palette[2],xpd=NA)
-    if(!is.null(startDate) && !is.null(endDate) && endDate!=startDate)
-      rect(startDate,ry[1],endDate,ry[2],border=NA,col=palette[1],xpd=NA)
+  winA.draw <- function() {
+    set.device(winA)
+    selection.rectangle(subsets$Start,subsets$End,endDate,col=palette[2])
+    selection.rectangle(startDate,endDate,col=palette[1])
   }
 
   ## Draw zoom window
-  zoom.draw <- function() {
+  winB.draw <- function() {
+    set.device(winB)
     if(!is.null(startDate) && !is.null(endDate)) {
       par(mfrow=c(1,2))
       light.image(tagdata,offset=offset,lmax=lmax,xlim=zoom.range(startDate))
@@ -107,24 +185,24 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
   }
 
   ## onMouseDown callback for selection window.
-  slctOnMouseDown <- function(buttons,x,y) {
+  winA.OnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
-    devset(slct.dev)
+    set.device(winA)
     date <- floorDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
     date <- min(max(date,minDate),maxDate)
     startDate <<- date
     endDate <<- date
     ## Redraw selection rectangles
-    devset(slct.dev)
-    rect.draw()
+    winA.draw()
     NULL
   }
 
   ## onMouseMove callback for selection window
-  slctOnMouseMove <- function(buttons,x,y) {
+  winA.OnMouseMove <- function(buttons,x,y) {
+    set.device(winA)
     ## Button 1 drag selects range
     if(length(buttons) > 0 && buttons[1]==0) {
-      date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
+      date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user"),"GMT"))
       date <- min(max(date,minDate),maxDate)
       if(date < startDate) {
         endDate <<- startDate
@@ -132,14 +210,14 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
       } else {
         endDate <<- date
       }
-      devset(slct.dev)
-      rect.draw()
+      winA.draw()
     }
     NULL
   }
 
   ## onMouseUp callback for selection window
-  slctOnMouseUp <- function(buttons,x,y) {
+  winA.OnMouseUp <- function(buttons,x,y) {
+    set.device(winA)
     ## All buttons up -> redraw zoom window
     if(length(buttons)==0) {
       date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user")))
@@ -150,10 +228,8 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
       } else {
         endDate <<- date
       }
-      devset(slct.dev)
-      rect.draw()
-      devset(zoom.dev)
-      zoom.draw()
+      winA.draw()
+      winB.draw()
     }
     NULL
   }
@@ -191,39 +267,37 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
     }
 
     ## Redraw
-    devset(slct.dev)
-    rect.draw()
-    devset(zoom.dev)
-    zoom.draw()
+    winA.draw()
+    winB.draw()
     NULL
   }
 
   ## Set up master window
   X11(width=width,height=height)
-  slct.draw()
-  rect.draw()
-  slct.dev <- dev.cur()
-  focus(slct.dev)
+  winA <- dev.cur()
+  winA.init()
+  winA.draw()
   setGraphicsEventHandlers(
-    which=slct.dev,
+    which=winA,
     prompt="Select Subset",
-    onMouseDown=slctOnMouseDown,
-    onMouseMove=slctOnMouseMove,
-    onMouseUp=slctOnMouseUp,
+    onMouseDown=winA.OnMouseDown,
+    onMouseMove=winA.OnMouseMove,
+    onMouseUp=winA.OnMouseUp,
     onKeybd=onKeybd)
   ## Set up zoom window
   X11(width=width,height=height)
-  zoom.dev <- dev.cur()
-  zoom.draw()
+  winB <- dev.cur()
+  winB.draw()
   setGraphicsEventHandlers(
-    which=zoom.dev,
-    prompt="Endpoint",
+    which=winB,
+    prompt="Select Endpoints",
     onKeybd=onKeybd)
   ## Monitor for events
+  focus(winA)
   tryCatch({
     getGraphicsEvent()
-      dev.off(slct.dev)
-      dev.off(zoom.dev)
+      dev.off(winA)
+      dev.off(winB)
       subsets
     }, finally=subsets)
 }
@@ -271,44 +345,35 @@ select.night <- function(tagdata,threshold,offset=0,
   exclude <- NULL
 
   ## Select device
-  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
 
   ## Draw the selection window
-  slct.draw <- function() {
+  winA.draw <- function() {
+    set.device(winA)
     ## Plot image
-    light.image(tagdata,offset=offset,lmax=lmax)
-    if(!is.null(twilights))
-      tsimage.points(twilights$Twilight,offset=offset,
-                     pch=16,cex=point.cex,
-                     col=palette[ifelse(twilights$Rise,1,2)])
+    image.draw(tagdata,twilights,offset=offset,point=TRUE,
+               lmax=lmax,point.cex=point.cex,palette=palette)
     if(length(include)>0) tsimage.points(include,offset=offset,pch=16,col=palette[3])
     if(length(exclude)>0) tsimage.points(exclude,offset=offset,pch=16,col=palette[4])
   }
 
   ## onMouseDown callback for selection window.
-  slctOnMouseDown <- function(buttons,x,y) {
-    ## Determine selected profile.
-    if(length(buttons) > 0 && buttons[1]==0) {
-      devset(slct.dev)
-      day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
-      hour <- grconvertY(y,from="ndc",to="user")
-      date <- .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
-      include <<- c(date,include)
-    }
-    if(length(buttons) > 0 && buttons[1]==2) {
-      devset(slct.dev)
-      day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
-      hour <- grconvertY(y,from="ndc",to="user")
-      date <- .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
-      exclude <<- c(date,exclude)
-    }
-    twilights <<- find.twilights(tagdata,threshold=threshold,
-                                 include=include,exclude=exclude,
-                                 extend=extend,dark.min=dark.min)
-    devset(slct.dev)
-    slct.draw()
+  winA.OnMouseDown <- function(buttons,x,y) {
+    set.device(winA)
+    ## Add segments to include or exclude
+    if(length(buttons) > 0 && buttons[1]==0)
+      include <<- c(ndc.image.date(x,y,day,hour),include)
+    if(length(buttons) > 0 && buttons[1]==2)
+      exclude <<- c(ndc.image.date(x,y,day,hour),exclude)
+
+    ## Recompute twilights
+    if(length(buttons) > 0 && (buttons[1]==0 || buttons[1]==2))
+      twilights <<- find.twilights(tagdata,threshold=threshold,
+                                   include=include,exclude=exclude,
+                                   extend=extend,dark.min=dark.min)
+    winA.draw()
     NULL
   }
 
@@ -318,24 +383,23 @@ select.night <- function(tagdata,threshold,offset=0,
     if(key=="q") return(-1)
 
     ## Redraw
-    devset(slct.dev)
-    slct.draw()
+    winA.draw()
     NULL
   }
 
   ## Set up master window
   X11(width=width,height=height)
-  slct.draw()
-  slct.dev <- dev.cur()
-  focus(slct.dev)
+  winA <- dev.cur()
+  winA.draw()
+  focus(winA)
   setGraphicsEventHandlers(
-    which=slct.dev,
-    prompt="Select Seeds",
-    onMouseDown=slctOnMouseDown,
+    which=winA,
+    prompt="Select Night",
+    onMouseDown=winA.OnMouseDown,
     onKeybd=onKeybd)
   tryCatch({
     getGraphicsEvent()
-    dev.off(slct.dev)
+    dev.off(winA)
     twilights
   }, finally=twilights)
 }
@@ -403,109 +467,88 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
                            point.cex=0.6,width=10,height=5,
                            palette=default.palette[c(5,2,9,3,4,1,13)]) {
 
-  ## Extract date and light
-  date <- tagdata$Date
-  light <- tagdata$Light
-  ## Order twilights and check deleted
+  ## Order twilights and check Deleted and Marker.
   twilights <- twilights[order(twilights$Twilight),]
   if(is.null(twilights$Deleted)) twilights$Deleted <- logical(nrow(twilights))
   if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
+  ## Record original times
+  twilights$TwilightOriginal <- twilights$Twilight
   ## Extract date and hour of twilight
   day <- twilights$Twilight
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
 
-  ## Record original times
-  twilights$TwilightOriginal <- twilights$Twilight
 
   ## Cached data subsets
   index <- 1
-  twl <- twilights$Twilight[index]
-  marker <- twilights$Marker[index]
-  deleted <- twilights$Deleted[index]
-  twls <- NULL
   edit.pt <- NULL
-  dteA <- dteB <- dteC <- NULL
-  lgtA <- lgtB <- lgtC <- NULL
-
   changed <- FALSE
+  twls <- NULL
+  date <- vector(3,mode="list")
+  light <- vector(3,mode="list")
   show.obs <- FALSE
+
 
   ## Set cached values
   cache <- function(k) {
     index <<- k
     edit.pt <<- NULL
     changed <<- FALSE
-
-    twl <<- twilights$Twilight[index]
-    deleted <<- twilights$Deleted[index]
-    marker <<- twilights$Marker[index]
-    ## Get profile times
+    ## Get twilight times
+    twl <- twilights$Twilight[index]
     keep <- (twilights$Twilight >= twl-3600*extend) & (twilights$Twilight <= twl+3600*extend)
     keep[index] <- FALSE
     twls <<- twilights$Twilight[keep]
-    ## Get profiles A - prev day, B - today, C - following day
-    keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
-    dteA <<- date[keep]
-    lgtA <<- light[keep]
-    keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
-    dteB <<- date[keep]
-    lgtB <<- light[keep]
-    keep <- (date >= twl+86400-3600*extend) & (date <= twl+86400+3600*extend)
-    dteC <<- date[keep]
-    lgtC <<- light[keep]
+    ## Get profiles
+    for(k in 1:3) {
+      mid <- twilights$Twilight[index]+(k-2)*86400
+      keep <- (tagdata$Date >= mid-3600*extend) & (tagdata$Date <= mid+3600*extend)
+      date[[k]] <<- tagdata$Date[keep]
+      lght[[k]] <<- tagdata$Light[keep]
+    }
   }
 
   ## Select device
-  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
 
   ## Draw the twilights window
-  twlght.draw <- function() {
-    plot(day,hour,
-         pch=16,cex=point.cex,
-         xlab="Date",ylab="Hour",
-         ylim=c(offset,offset+24),
-         col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))])
-    points(day[index],hour[index],pch=3)
+  winA.draw <- function() {
+    set.device(winA)
+    image.draw(NULL,twilights,offset=offset,point=TRUE,mark=index,
+               col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
+               palette=palette)
   }
 
   ## Draw light profiles
-  profile.draw <- function() {
+  winB.draw <- function() {
+    set.device(winB)
     ## Draw axes for light profiles
-    mlab <- if(marker>0) paste("Marker: ",marker) else ""
-    plot(dteB,lgtB,ylim=c(0,lmax),xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
-    axis.POSIXct(1,x=dteB,format="%H:%M")
-    ## Overlay with light threshold
-    if(!is.null(threshold))
-      abline(h=threshold,col=palette[6])
-    ## Overlay the light profile for the selected and surrounding days
-    lines(dteA+86400,lgtA,col=palette[4])
-    lines(dteC-86400,lgtC,col=palette[5])
-    lines(dteB,lgtB,col=palette[3])
-    if(show.obs) points(dteB,lgtB,col=palette[4],pch=16,cex=point.cex)
+    marker <- twilights$Marker[index]
+    profile.init(date[[2]],lght[[2]],lmax=lmax,
+                 xlab=if(marker>0) paste("Marker: ",marker) else "",
+                 main=as.character(twilights$Twilight[index]))
+    ## Overlay with light profiles
+    profile.overlay(date[[2]],lght[[2]],threshold,show.obs,
+                    date[[1]],lght[[1]],date[[3]],lght[[3]],
+                    point.cex=point.cex,palette=palette[3:6])
     abline(v=twls,col=palette[7])
-    abline(v=twl,col=if(!deleted) palette[6] else palette[7])
+    abline(v=twilights$Twilight[index],col=if(!twilights$Deleted[index]) palette[6] else palette[7])
     if(changed) points(edit.pt[1],edit.pt[2],pch=16,col=palette[6])
   }
 
 
   ## onMouseDown callback for twilights window.
-  twlOnMouseDown <- function(buttons,x,y) {
+  winA.OnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
     if(length(buttons) > 0 && buttons[1]==0) {
-      devset(twlght.dev)
-      x <- grconvertX(x,from="ndc",to="user")
-      y <- grconvertY(y,from="ndc",to="user")
-      r <- ((x-as.numeric(day))/3600)^2+((y-hour+12)%%24-12)^2
-      k <- which.min(r)
+      set.device(winA)
+      k <- ndc.closest.twilight(x,y,day,hour)
       ## Redraw
       cache(k)
-      devset(twlght.dev)
-      twlght.draw()
-      devset(profile.dev)
-      profile.draw()
-      focus(profile.dev)
+      winA.draw()
+      winB.draw()
+      focus(winB)
     }
     NULL
   }
@@ -525,6 +568,11 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     }
     ## x : reset selection
     if(key=="r") {
+      cache(index)
+    }
+    ## d : toggle deletion
+    if(key=="r") {
+      twilights$Deleted[index] <<- !twilights$Deleted[index]
       cache(index)
     }
     ## p : toggle display of points in the profile window
@@ -549,20 +597,18 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
       changed <<- FALSE
     }
     if(key >= "0" && key <= "9") {
-      marker <<- as.numeric(key)
-      twilights$Marker[index] <<- marker
+      twilights$Marker[index] <<- as.numeric(key)
     }
 
     ## Redraw
-    devset(twlght.dev)
-    twlght.draw()
-    devset(profile.dev)
-    profile.draw()
+    winA.draw()
+    winB.draw()
     NULL
   }
 
   ## onMouseDown callback for profile window
-  prfOnMouseDown <- function(buttons,x,y) {
+  winB.OnMouseDown <- function(buttons,x,y) {
+    set.device(winB)
     ## Button 1 -> record location
     if(length(buttons) > 0 && buttons[1]==0) {
       changed <<- TRUE
@@ -571,11 +617,10 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     }
     ## Button 2 -> toggle deletion
     if(length(buttons) > 0 && buttons[1]==2) {
-      deleted <- (deleted==FALSE)
-      twilights$Deleted[index] <<- deleted
+      twilights$Deleted[index] <<- !twilights$Deleted[index]
       cache(index)
     }
-    profile.draw()
+    winB.draw()
     NULL
   }
 
@@ -584,28 +629,28 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   index <- 1
   cache(index)
   X11(width=width,height=height)
-  twlght.draw()
-  twlght.dev <- dev.cur()
-  focus(twlght.dev)
+  winA <- dev.cur()
+  winA.draw()
   setGraphicsEventHandlers(
-    which=twlght.dev,
+    which=winA,
     prompt="Select Twilight",
-    onMouseDown=twlOnMouseDown,
+    onMouseDown=winA.OnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
   X11(width=width,height=height)
-  profile.dev <- dev.cur()
-  profile.draw()
+  winB <- dev.cur()
+  winB.draw()
   setGraphicsEventHandlers(
-    which=profile.dev,
+    which=profile,
     prompt="Light Profile",
-    onMouseDown=prfOnMouseDown,
+    onMouseDown=winB.OnMouseDown,
     onKeybd=onKeybd)
+  focus(winA)
   ## Monitor for events
   tryCatch({
       getGraphicsEvent()
-      dev.off(profile.dev)
-      dev.off(twlght.dev)
+      dev.off(winB)
+      dev.off(winA)
       twilights
   }, finally=twilights)
 }
@@ -673,9 +718,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
                               palette=default.palette[c(5,2,9,3,4,1,1)]) {
 
 
-  ## Extract date and light
-  date <- tagdata$Date
-  light <- tagdata$Light
+
   ## Order twilights
   if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
   twilights <- twilights[order(twilights$Twilight,twilights$Start),
@@ -690,8 +733,8 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   twl <- NULL
   marker <- 0
   rise <- FALSE
-  dteA <- dteB <- dteC <- NULL
-  lgtA <- lgtB <- lgtC <- NULL
+  date <- vector(3,mode="list")
+  light <- vector(3,mode="list")
   selected <- NULL
   start <- end <- 0
   changed <- FALSE
@@ -701,101 +744,87 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   cache <- function(k) {
     index <<- k
     changed <<- FALSE
-
     twl <<- twilights$Twilight[which(index==indices)[1]]
     marker <<- twilights$Marker[which(index==indices)[1]]
     rise <<- twilights$Rise[which(index==indices)[1]]
-    ## Get profiles A - prev day, B - today, C - following day
-    keep <- (date >= twl-86400-3600*extend) & (date <= twl-86400+3600*extend)
-    dteA <<- date[keep]
-    lgtA <<- light[keep]
-    keep <- (date >= twl - 3600*extend) & (date <= twl + 3600*extend)
-    dteB <<- date[keep]
-    lgtB <<- light[keep]
-    keep <- (date >= twl+86400-3600*extend) & (date <= twl+86400+3600*extend)
-    dteC <<- date[keep]
-    lgtC <<- light[keep]
+    ## Get profiles
+    for(k in 1:3) {
+      mid <- twilights$Twilight[index]+(k-2)*86400
+      keep <- (tagdata$Date >= mid-3600*extend) & (tagdata$Date <= mid+3600*extend)
+      date[[k]] <<- tagdata$Date[keep]
+      lght[[k]] <<- tagdata$Light[keep]
+    }
     ## Determined selected range
-    selected <<- logical(length(dteB))
+    selected <<- logical(length(date[[2]]))
     for(i in which(index==indices))
-      selected[dteB >= twilights$Start[i] & dteB <= twilights$End[i]] <<- TRUE
+      selected[date[[2]] >= twilights$Start[i] & date[[2]] <= twilights$End[i]] <<- TRUE
   }
 
   ## Select device
-  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
 
   ## Draw the twilights window
-  twlght.draw <- function() {
-    plot(day,hour,type="n",
-         xlab="Date",ylab="Hour",
-         ylim=c(offset,offset+24))
-    rise <- twilights[twilights$Rise,]
-    tsimage.ribbon(.POSIXct(tapply(rise$Start,rise$Twilight,min),"GMT"),
-                   .POSIXct(tapply(rise$End,rise$Twilight,max),"GMT"),
-                   offset=offset,border=NA,col=palette[1])
-    set <- twilights[!twilights$Rise,]
-    tsimage.ribbon(.POSIXct(tapply(set$Start,set$Twilight,min),"GMT"),
-                   .POSIXct(tapply(set$End,set$Twilight,max),"GMT"),
-                   offset=offset,border=NA,col=palette[2])
-    points(day[index],hour[index],pch=3)
+  winA.draw <- function() {
+    set.device(winA)
+    image.draw(NULL,twilights,offset=offset,ribbon=TRUE,mark=index,
+               col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
+               palette=palette)
   }
 
 
   ## Draw axes for light profiles
-  profile.init <- function() {
-    mlab <- if(marker>0) paste("Marker: ",marker) else ""
-    plot(dteB,lgtB,ylim=c(0,lmax),xlab=mlab,ylab="Light",type="n",xaxt="n",main=as.character(twl))
-    axis.POSIXct(1,x=dteB,format="%H:%M")
+  winB.init <- function() {
+    set.device(winB)
+    profile.init(date[[2]],lght[[2]],lmax=lmax,
+                 xlab=if(marker>0) paste("Marker: ",marker) else "",
+                 main=as.character(twl))
   }
 
   ## Draw light profiles
-  profile.draw <- function() {
-    ## Overlay light threshold
-    if(!is.null(threshold))
-      abline(h=threshold,col=palette[6])
-    ## Overlay the light profile for the selected and surrounding days
-    lines(dteA+86400,lgtA,col=palette[4])
-    lines(dteC-86400,lgtC,col=palette[5])
-    lines(dteB,lgtB,col=palette[3])
-    if(show.obs) points(dteB,lgtB,col=palette[3],pch=16,cex=point.cex)
+  winB.draw <- function() {
+    set.device(winB)
+    ## Overlay with light profiles
+    profile.overlay(date[[2]],lght[[2]],threshold,show.obs,
+                    date[[1]],lght[[1]],date[[3]],lght[[3]],
+                    point.cex=point.cex,palette=palette[3:6])
 
     ## Show selection
     col <- palette[if(changed) 7 else (if(rise) 1 else 2)]
     ## Hightlight selected segments
-    x <- ifelse(selected,dteB,NA)
-    y <- ifelse(selected,lgtB,NA)
+    x <- ifelse(selected,date[[2]],NA)
+    y <- ifelse(selected,lght[[2]],NA)
     lines(x,y,col=col)
     if(show.obs) points(x,y,pch=16,cex=point.cex,col=col)
-    ## Draw selection rectangle above plot
-    rx <- grconvertX(c(0,1),from="npc",to="user")
-    ry <- grconvertY(c(1.01,1.03),from="npc",to="user")
-    rect(rx[1],ry[1],rx[2],ry[2],border=NA,col="white",xpd=NA)
+
+    ## Selection rectangle
+    x1 <- x2 <- NULL
     if(any(selected)) {
-      rect(dteB[diff(c(FALSE,selected))==1],ry[1],
-           dteB[diff(c(selected,FALSE))==-1],ry[2],
-           border=NA,col=col,xpd=NA)
+      x1 <- date[[2]][diff(c(FALSE,selected))==1]
+      x2 <- date[[2]][diff(c(selected,FALSE))==-1]
     }
+    selection.rectangle(x1,x2,col)
   }
 
 
   ## onMouseDown callback for twilights window.
-  twlOnMouseDown <- function(buttons,x,y) {
+  winA.OnMouseDown <- function(buttons,x,y) {
+    set.device(winA)
     if(length(buttons) > 0 && buttons[1]==0) {
       ## Determine selected profile.
-      devset(twlght.dev)
+      set.device(winA)
       xs <- grconvertX(c(day,day,day),from="user",to="ndc")
       ys <- grconvertY(c(hour-24,hour,hour+24),from="user",to="ndc")
       k <- (which.min((x-xs)^2+(y-ys)^2)-1)%%length(day)+1
       ## Redraw
       cache(k)
-      devset(twlght.dev)
-      twlght.draw()
-      devset(profile.dev)
+      set.device(winA)
+      winA.draw()
+      set.device(profile)
       profile.init()
       profile.draw()
-      focus(profile.dev)
+      focus(profile)
     }
     NULL
   }
@@ -851,16 +880,14 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
     }
 
     ## Redraw
-    devset(twlght.dev)
-    twlght.draw()
-    devset(profile.dev)
-    profile.init()
-    profile.draw()
+    winA.draw()
+    winB.init()
+    winB.draw()
     NULL
   }
 
   ## onMouseDown callback for profile window
-  prfOnMouseDown <- function(buttons,x,y) {
+  winB.OnMouseDown <- function(buttons,x,y) {
     ## Button 1 -> record location and do complete draw
     if(length(buttons) > 0 && buttons[1]==0) {
       changed <<- TRUE
@@ -882,7 +909,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   }
 
   ## onMouseMove callback for profile window
-  prfOnMouseMove <- function(buttons,x,y) {
+  winB.OnMouseMove <- function(buttons,x,y) {
     ## Button 1 drag to select crepuscular period
     if(length(buttons) > 0 && buttons[1]==0) {
       end <<- grconvertX(x,from="ndc",to="user")
@@ -899,30 +926,30 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   index <- 1
   cache(index)
   X11(width=width,height=height)
-  twlght.draw()
-  twlght.dev <- dev.cur()
+  winA <- dev.cur()
+  winA.draw()
   setGraphicsEventHandlers(
-    which=twlght.dev,
+    which=winA,
     prompt="Select Twilight",
-    onMouseDown=twlOnMouseDown,
+    onMouseDown=winA.OnMouseDown,
     onKeybd=onKeybd)
   ## Set up profile window
   X11(width=width,height=height)
-  profile.dev <- dev.cur()
-  profile.init()
-  profile.draw()
+  winB <- dev.cur()
+  winB.init()
+  winB.draw()
   setGraphicsEventHandlers(
-    which=profile.dev,
+    which=profile,
     prompt="Light Profile",
-    onMouseDown=prfOnMouseDown,
-    onMouseMove=prfOnMouseMove,
+    onMouseDown=winB.OnMouseDown,
+    onMouseMove=winB.OnMouseMove,
     onKeybd=onKeybd)
-  focus(twlght.dev)
+  focus(winA)
   ## Monitor for events
   tryCatch({
       getGraphicsEvent()
-      dev.off(profile.dev)
-      dev.off(twlght.dev)
+      dev.off(winB)
+      dev.off(winA)
       twilights
   }, finally=twilights)
 }
@@ -995,6 +1022,22 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     rgb(red=col[1],green=col[2],blue=col[3],alpha=alpha)
   }
 
+  set.zoom <- function(w) {
+    window <<- w
+    xlim <<- centre[1]+window*c(-0.5,0.5)
+    ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
+    map <<- NULL
+  }
+
+  set.window <- function() {
+    xl <- range(path[,1])
+    yl <- range(path[,2])
+    centre <<- c(mean(xl),mean(yl))
+    set.zoom(max(diff(xl),diff(yl)/aspect))
+  }
+
+
+
   ## Order twilights and check deleted
   twilights <- twilights[order(twilights$Twilight),]
   ## Extract date and hour of twilight
@@ -1005,40 +1048,31 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   invalid <- !fixed | is.invalid(path)
 
   ## Map window parameters
-  xlim <- range(path[,1])
-  ylim <- range(path[,2])
-  centre <- c(mean(xlim),mean(ylim))
-  window <- max(diff(xlim),diff(ylim)/aspect)
-  xlim <- centre[1]+window*c(-0.5,0.5)
-  ylim <- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
+  xlim <- ylim <- centre <- window
+  set.window(path)
   ## Cached map
   map <- NULL
 
-  if(is.null(plot.map)) {
-    plot.map <- function(xlim,ylim) {
-      plot.new()
-      plot.window(xlim,ylim)
-    }
-  }
+  if(is.null(plot.map))
+    plot.map <- function(xlim,ylim) { plot.new(); plot.window(xlim,ylim) }
 
   ## Select device
-  devset <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else devset
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
 
   ## Draw the twilights window
-  twlght.draw <- function() {
-    plot(day,hour,
-         pch=16,cex=point.cex,
-         xlab="Date",ylab="Hour",
-         ylim=c(offset,offset+24),
-         col=palette[ifelse(invalid,3,ifelse(twilights$Rise,1,2))])
-    points(day[index],hour[index],pch=3)
+  winA.draw <- function() {
+    set.device(winA)
+    image.draw(tagdata,twilights,offset=offset,point=TRUE,mark=index,
+               lmax=lmax,point.cex=point.cex,
+               point.col=palette[ifelse(invalid,3,ifelse(twilights$Rise,1,2))],
+               palette=palette)
   }
 
   ## Draw light profiles
-  path.draw <- function() {
-
+  winB.draw <- function() {
+    set.device(winB)
     ## Create underlying map
     if(is.null(map)) {
       ## User defined map function
@@ -1069,19 +1103,14 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   }
 
   ## onMouseDown callback for twilights window.
-  twlOnMouseDown <- function(buttons,x,y) {
+  winA.OnMouseDown <- function(buttons,x,y) {
+    set.device(winA)
     ## Determine selected profile.
-    devset(twlght.dev)
-    x <- grconvertX(x,from="ndc",to="user")
-    y <- grconvertY(y,from="ndc",to="user")
-    r <- ((x-as.numeric(day))/3600)^2+((y-hour+12)%%24-12)^2
-    index <<- which.min(r)
+    index <<- ndc.closest.twilight(x,y,day,hour)
     ## Redraw
-    devset(twlght.dev)
-    twlght.draw()
-    devset(path.dev)
-    path.draw()
-    focus(path.dev)
+    winA.draw()
+    winB.draw()
+    focus(winB)
     NULL
   }
 
@@ -1094,37 +1123,18 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     }
     ## Reset zoom to the full path
     if(key=="r") {
-      xl <- range(path[,1])
-      yl <- range(path[,2])
-      centre <<- c(mean(xl),mean(yl))
-      window <<- 1.1*max(diff(xl),diff(yl)/aspect)
-      xlim <<- centre[1]+window*c(-0.5,0.5)
-      ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
-      map <<- NULL
+      set.window(path)
     }
     ## Zoom to locations surrounding current location
     if(key=="z") {
-      ks <- max(1,index-extend):min(nrow(path),index+extend)
-      xl <- range(path[ks,1])
-      yl <- range(path[ks,2])
-      centre <<- c(mean(xl),mean(yl))
-      window <<- max(diff(xl),diff(yl)/aspect)
-      xlim <<- centre[1]+window*c(-0.5,0.5)
-      ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
-      map <<- NULL
+      set.window(path[max(1,index-extend):min(nrow(path),index+extend),])
     }
     ## +/- : zoom time window around threshold crossing
     if(key=="+") {
-      window <<- 5/8*window
-      xlim <<- centre[1]+window*c(-0.5,0.5)
-      ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
-      map <<- NULL
+      set.zoom(5/8*window)
     }
     if(key=="-") {
-      window <<- 8/5*window
-      xlim <<- centre[1]+window*c(-0.5,0.5)
-      ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
-      map <<- NULL
+      set.zoom(8/5*window)
     }
     ## Left/Right : jump to neighbouring twilight
     if(key=="Left") {
@@ -1135,15 +1145,14 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     }
 
     ## Redraw
-    devset(twlght.dev)
-    twlght.draw()
-    devset(path.dev)
-    path.draw()
+    winA.draw()
+    winB.draw()
     NULL
   }
 
   ## onMouseDown callback for path window
-  pathOnMouseDown <- function(buttons,x,y) {
+  winB.OnMouseDown <- function(buttons,x,y) {
+    set.device(winB)
     ## Button 1 -> move location
     if(length(buttons) > 0 && buttons[1]==0 && !fixed[index]) {
       path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
@@ -1156,39 +1165,37 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
       ## Map window parameters
       centre <<- c(grconvertX(x,from="ndc",to="user"),
                    grconvertY(y,from="ndc",to="user"))
-      xlim <<- centre[1]+window*c(-0.5,0.5)
-      ylim <<- pmax(pmin(centre[2]+aspect*window*c(-0.5,0.5),90),-90)
-      map <<- NULL
+      set.zoom(window)
     }
-    path.draw()
+    winB.draw()
     NULL
   }
 
   ## Set up twilights window
   index <- 1
   X11(width=width,height=height)
-  twlght.draw()
-  twlght.dev <- dev.cur()
-  focus(twlght.dev)
+  winA <- dev.cur()
+  winA.draw()
   setGraphicsEventHandlers(
-    which=twlght.dev,
+    which=winA,
     prompt="Select Twilight",
-    onMouseDown=twlOnMouseDown,
+    onMouseDown=winA.OnMouseDown,
     onKeybd=onKeybd)
   ## Set up path window
   X11(width=width,height=height)
-  path.dev <- dev.cur()
-  path.draw()
+  winB <- dev.cur()
+  winB.draw()
   setGraphicsEventHandlers(
-    which=path.dev,
+    which=winB,
     prompt="Path",
-    onMouseDown=pathOnMouseDown,
+    onMouseDown=winB.OnMouseDown,
     onKeybd=onKeybd)
+  focus(winA)
   ## Monitor for events
   tryCatch({
     getGraphicsEvent()
-    dev.off(path.dev)
-    dev.off(twlght.dev)
+    dev.off(winB)
+    dev.off(winA)
     path
   }, finally=path)
 }
