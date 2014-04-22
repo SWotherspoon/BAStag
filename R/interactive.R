@@ -28,7 +28,12 @@ image.draw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
                        lmax=64,point.cex=0.6) {
 
   ## Plot background image
-  if(!is.null(tagdata)) light.image(tagdata,offset=offset,lmax=lmax)
+  if(!is.null(tagdata)) {
+    if(!is.null(xlim))
+      light.image(tagdata,offset=offset,lmax=lmax,xlim=xlim)
+    else
+      light.image(tagdata,offset=offset,lmax=lmax)
+  }
 
   ## If there is twilight data
   if(!is.null(twilights)) {
@@ -69,10 +74,11 @@ image.draw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
 ##' @param lmax the maximum light level.
 ##' @param xlab the x axis label.
 ##' @param main the main title.
-##' @param threshold
-##' @param point
-##' @param point.cex
-##' @param palette
+##' @param threshold threshold levels to display
+##' @param point show individual observations as points
+##' @param point.cex expansion factor for plot points.
+##' @param profile.col the colours of the three light profiles.
+##' @param threshold.col the colour of the threshold markers.
 profile.init <- function(date,light,lmax=64,xlab="",main="") {
   ## Draw axes for light profiles
   plot(date[[2]],light[[2]],ylim=c(0,lmax),xlab=xlab,ylab="Light",type="n",xaxt="n",main=main)
@@ -140,9 +146,9 @@ ndc.closest <- function(x,y,xs,ys) {
 
 ##' @rdname ndc.closest
 ndc.tsimage.date <- function(x,y) {
-  day <- .POSIXct(grconvertX(x,from="ndc",to="user"))
+  day <- .POSIXct(grconvertX(x,from="ndc",to="user"),"GMT")
   hour <- grconvertY(y,from="ndc",to="user")
-  .POSIXct(day+((hour-as.hour(day))%%24)*60*60,tz="GMT")
+  .POSIXct(day+(hour-as.hour(day))*60*60,"GMT")
 }
 
 
@@ -190,7 +196,7 @@ ndc.tsimage.date <- function(x,y) {
 ##' \item{\code{End}}{end time of subset}
 ##' @export
 select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
-                          width=10,height=5,
+                          width=12,height=4,
                           palette=default.palette[1:2]) {
 
   ## Round down/up to nearest offset
@@ -388,7 +394,7 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
 ##' @param lmax the maximum light level to plot.
 ##' @param width width of the interface windows.
 ##' @param height height of the interface windows.
-##' @param palette a colour palette of 2 colours.
+##' @param palette a colour palette of 4 colours.
 ##' @return A dataframe with columns
 ##' \item{\code{Twilight}}{times of twilight}
 ##' \item{\code{Rise}}{logical indicating sunrise}
@@ -397,7 +403,7 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
 select.night <- function(tagdata,threshold,offset=0,
                          extend=0,dark.min=0,
                          point.cex=0.6,lmax=64,
-                         width=10,height=5,
+                         width=12,height=4,
                          palette=default.palette[c(5,2,3,4)]) {
 
   twilights <- NULL
@@ -527,7 +533,7 @@ select.night <- function(tagdata,threshold,offset=0,
 ##' \item{\code{Original}}{original times of twilight}
 ##' @export
 select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
-                           point.cex=0.6,width=10,height=5,
+                           point.cex=0.6,width=12,height=4,
                            palette=default.palette[c(5,2,9,3,4,1,13)]) {
 
   ## Order twilights and check Deleted and Marker.
@@ -781,7 +787,7 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @export
 select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
-                              point.cex=0.5,width=10,height=5,
+                              point.cex=0.5,width=12,height=4,
                               palette=default.palette[c(5,2,9,3,4,1,1)]) {
 
 
@@ -1072,15 +1078,18 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' @param plot.map A function to plot the background map.
 ##' @param is.invalid A function check if a location is not valid.
 ##' @param point.cex expansion factor for plot points.
-##' @param width width of the interface windows.
-##' @param height height of the interface windows.
+##' @param width width of the selection window.
+##' @param height height of the selection window.
+##' @param map.width width of the map window.
+##' @param map.height height of the map window.
 ##' @param palette a colour palette of 8 colours.
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @export
 select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
                         contours=c(10,20,50),extend=1,auto.advance=F,
                         plot.map=NULL, is.invalid=function(path) logical(nrow(path)),
-                        point.cex=0.5,width=10,height=5,
+                        point.cex=0.5,width=12,height=4,
+                        map.width=8,map.height=8,
                         palette=default.palette[c(5,2,1,12,3,4)]) {
 
   add.alpha <- function(col,alpha) {
@@ -1095,7 +1104,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   hour <- hour.offset(as.hour(twilights$Twilight),offset)
   ## Set fixed points
   fixed <- rep(fixed,length.out=nrow(path))
-  invalid <- !fixed | is.invalid(path)
+  invalid <- !fixed & is.invalid(path)
 
   ## Map xyscl parameters
   xlim <- ylim <- centre <- xyscl <- NULL
@@ -1219,7 +1228,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     if(length(buttons) > 0 && buttons[1]==0 && !fixed[index]) {
       path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
                          grconvertY(y,from="ndc",to="user"))
-      invalid <<- !fixed | is.invalid(path)
+      invalid <<- !fixed & is.invalid(path)
       if(auto.advance) index <<- min(index+1,nrow(path))
     }
     ## Button 2 -> centre map
@@ -1244,7 +1253,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     onMouseDown=winA.OnMouseDown,
     onKeybd=onKeybd)
   ## Set up path window
-  X11(width=width,height=height)
+  X11(width=map.width,height=map.height)
   winB <- dev.cur()
   winB.draw()
   setGraphicsEventHandlers(
@@ -1265,8 +1274,523 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
 
 
 
+##' Interactively derive and edit twilight times.
+##'
+##' This function allows the user to interactively search for and edit
+##' twilight times corresponding to a given light threshold. The
+##' process consists of four stages,
+##' \enumerate{
+##' \item Subset -- selection of a subset of the data for processing
+##' \item Search -- semi-automated search for the twilights
+##' \item Insert -- optionally, twilights are inserted where the light record is incomplete
+##' \item Edit -- optioanlly, individual twilights are manually adjusted based on the light profiles.
+##' }
+##'
+##' At each stage, user is presented with two windows.  The first
+##' shows the data in its entirety and allows the user to select a
+##' subset of the data to be manipulated in the second window.
+##'
+##' In the first stage the user can restrict the data to a subset for
+##' processing.  The first window shows a light image and a coloured
+##' rectangle above the image shows the selected subset of data.  In
+##' the first window, clicking with either mouse button produces a
+##' zoomed image of the clicked region in the second window.  In
+##' either window, left mouse clicks define the start of the selected
+##' subset and right mouse clicks defines the end of the selected
+##' subset. The "a" key accepts the current selection an proceeds to
+##' the next stage.
+##'
+##' In either window
+##' \tabular{ll}{
+##' 'q' \tab Quits\cr
+##' 'a' \tab Accepts any changes and advances to the next stage \cr
+##' '+'/'-' \tab Zoom in or out \cr
+##' }
+##'
+##' In the second stage the user guides an semi-automated search for
+##' the twilight times.  Again, a right mouse click in the first
+##' window produces a zoomed image of the clicked region in the
+##' second.  In the second window, the user must click in periods of
+##' nights.  Left mouse clicks select regions to be searched for
+##' twilights, right mouse clicks select regions that should not be
+##' searched.  The "u" key provides an undo facility, allowing mouse
+##' clicks to be deleted, and the "a" key terminates the search and
+##' proceeds to the next stage.
+##'
+##' In either window
+##' \tabular{ll}{
+##' 'q' \tab Quits, returning the dataframe of edited twilights\cr
+##' 'a' \tab Accepts any changes and advances to the next stage \cr
+##' 'u' \tab Removes the most recent search point\cr
+##' '+'/'-' \tab Zoom in or out \cr
+##' }
+##'
+##' In the third stage the user may insert additional twilights where
+##' the light record is incomplete. As for the first two stages, right
+##' mouse clicks in the first window produce a zoomed image of the
+##' clicked region in the second window.  In the second window, the
+##' user may ad times of sunrise or sunset.  A left mouse click adds a
+##' sunset, and a right mouse click adds a sunrise. The numeric keys
+##' on the keyboard mark the most recent inerted point with a "mark" 0
+##' to 9. If the user provides both the \code{zenith} argument and a
+##' two column matrix of locations for the \code{fixed} argument,
+##' marking a point with the digit n replaces the marked twilight with
+##' the computed twilight time for the n-th fixed location.  Again "u"
+##' provides an undo facility and the "a" key proceeds to the next
+##' stage.
+##'
+##' In either window
+##' \tabular{ll}{
+##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
+##' 'a' \tab Accepts any changes and advances to the next stage \cr
+##' 'u' \tab Removes the most recent insertion \cr
+##' '+'/'-' \tab Zoom in or out \cr
+##' '0'-'9' \tab Mark the most recent addition \cr
+##' }
+##'
+##' In the fourth stage, the user may adjust individual twilights
+##' based on the observed light profile.  The first window now shows
+##' the sequence of twilights.  A right mouse click on any twilight
+##' shows the light profile for that twilight in the second window,
+##' together with the profiles for the preceeding and following days.
+##' A left click in the second window proposes a new location for the
+##' current twilight, but no change is made until the edit is accepted
+##' with the "a" key. A right click in the second window marks the
+##' twilight as deleted, and the numeric keys mark the twilight with a
+##' "mark" 0 to 9. If the user provides both the \code{zenith}
+##' argument and a two column matrix of locations for the \code{fixed}
+##' argument, marking a point with the digit n replaces the marked
+##' twilight with the computed twilight time for the n-th fixed
+##' location.  The "u" key reverts the edits to the current twilight.
+##'
+##' In either window
+##' \tabular{ll}{
+##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
+##' 'a' \tab Accepts the candidate edit \cr
+##' 'd' \tab Toggle deletion of this twilight \cr
+##' 'i' \tab Toggles the display of the light image \cr
+##' 'p' \tab Toggles the display of individual points \cr
+##' 'r' \tab Resets the selection \cr
+##' 'u' \tab Revert changes to this twilight \cr
+##' '+'/'-' \tab Zoom in or out \cr
+##' 'Left arrow' \tab Jump to previous twilight \cr
+##' 'Right arrow' \tab Jump to ext twilight \cr
+##' '0'-'9' \tab Mark this twilight \cr
+##' }
+##'
+##'
+##' @title Interactively derive twilight
+##' @param tagdata a dataframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' @param threshold the light threshold that defines twilight.
+##' @param offset the starting hour for the vertical axes.
+##' @param lmax the maximum light level to plot.
+##' @param extend a time in minutes. The function seeks periods of
+##' darkness that differ from one another by 24 hours plus or minus
+##' this interval.
+##' @param dark.min a time in minutes. Periods of darkness shorter
+##' than this interval will be excluded.
+##' @param zenith the solar zenith angle that defines twilight.
+##' @param fixed a two column array of fixed locations
+##' @param point.cex expansion factor for plot points.
+##' @param width width of the interface windows.
+##' @param height height of the interface windows.
+##' @param palette a colour palette of 7 colours.
+##' @return A dataframe with columns
+##' \item{\code{Twilight}}{times of twilight}
+##' \item{\code{Rise}}{logical indicating sunrise}
+##' \item{\code{Deleted}}{logical indentifying deleted twilights}
+##' \item{\code{Marker}}{integer vector of marks}
+##' \item{\code{Inserted}}{logical vector of marks}
+##'\item{\code{Twilight3}}{Twilight from stage 3}
+##' \item{\code{Marker3}}{Marker from stage 3}
+##' where each row corresponds to a single twilight.
+##' @export
+process.light <- function(tagdata,threshold,offset=0,lmax=64,
+                          extend=0,dark.min=0,
+                          zenith=96,fixed=NULL,
+                          point.cex=0.8,width=12,height=4,
+                          palette=default.palette[c(5,2,9,3,4,1,13)]) {
+
+  twilights <- NULL
+
+  ## Round down/up to nearest offset
+  floorDate <- function(date) date - ((as.hour(date)-offset)%%24)*60*60
+  ceilingDate <- function(date) date + ((offset-as.hour(date))%%24)*60*60
+
+  ## Set initial selection to entire date range
+  minDate <- floorDate(min(tagdata$Date))
+  maxDate <- ceilingDate(max(tagdata$Date))
+  Date1 <- minDate
+  Date2 <- maxDate
+  DateZ <- NULL
+
+  seed <- include <- NULL
+  zoom <- 6
 
 
 
+  ## Cached data subsets
+  stage <- 1
+  index <- NULL
+  edit.pt <- NULL
+  changed <- FALSE
+  twls <- NULL
+  date <- vector(3,mode="list")
+  lght <- vector(3,mode="list")
+  show.obs <- FALSE
+  show.image <- FALSE
 
+
+  ## Set cached values
+  cache <- function(k) {
+    index <<- k
+    edit.pt <<- NULL
+    changed <<- FALSE
+    ## Get twilight times
+    twl <- twilights$Twilight[index]
+    keep <- (twilights$Twilight >= twl-3600*zoom) & (twilights$Twilight <= twl+3600*zoom)
+    keep[index] <- FALSE
+    twls <<- twilights$Twilight[keep]
+    ## Get profiles
+    for(k in 1:3) {
+      mid <- twilights$Twilight[index]+(k-2)*86400
+      keep <- (tagdata$Date >= mid-3600*zoom) & (tagdata$Date <= mid+3600*zoom)
+      date[[k]] <<- tagdata$Date[keep]
+      lght[[k]] <<- tagdata$Light[keep]
+    }
+  }
+
+
+
+  ## Select device
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
+
+
+  ## Draw the twilights window
+  winA.draw <- function() {
+    set.device(winA)
+    image.draw(if(stage < 4 || show.image) tagdata,
+               twilights,offset=offset,mark=index,
+               points.col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
+               lmax=lmax,point.cex=point.cex)
+    title(main=switch(stage,
+            "Select subset",
+            "Find twilights",
+            "Insert twilights",
+            "Edit twilights"))
+
+    if(stage==1)
+      selection.rectangle(Date1,Date2,col=palette[6])
+
+    if(stage==2 && length(include)>0)
+      tsimage.points(seed,offset=offset,pch=16,col=palette[ifelse(include,4,5)])
+  }
+
+
+  winB.draw <- function() {
+    set.device(winB)
+    if(stage <= 3) {
+      ## Display zoomed image
+      xlim <- if(!is.null(DateZ)) {
+        start <- floorDate(max(DateZ - zoom*24*60*60,minDate))
+        end <- ceilingDate(min(start+2*zoom*24*60*60,maxDate))
+        start <- floorDate(max(end - 2*zoom*24*60*60,minDate))
+        c(start,end)
+      }
+      image.draw(tagdata,twilights,offset=offset,
+                 points.col=palette[ifelse(twilights$Rise,1,2)],
+                 lmax=lmax,xlim=xlim)
+      title(main=as.character(DateZ))
+    } else {
+      ## Plot light profiles
+      marker <- twilights$Marker[index]
+      profile.init(date,lght,lmax=lmax,
+                   xlab=if(marker>0) paste("Marker: ",marker) else "",
+                   main=as.character(twilights$Twilight[index]))
+      ## Overlay with light profiles
+      profile.overlay(date,lght,threshold,show.obs,
+                      profile.col=palette[3:5],threshold.col=palette[6],
+                      point.cex=point.cex)
+      abline(v=twls,col=palette[7])
+      abline(v=twilights$Twilight[index],col=if(!twilights$Deleted[index]) palette[6] else palette[7])
+      if(changed) points(edit.pt[1],edit.pt[2],pch=16,col=palette[6])
+    }
+
+    if(stage==1)
+      tsimage.points(c(Date1,Date2),offset=offset,pch=16,col=palette[6])
+
+    if(stage==2 && length(include)>0)
+      tsimage.points(seed,offset=offset,pch=16,col=palette[ifelse(include,4,5)])
+  }
+
+
+  ## onMouseDown callback for twilights window.
+  winA.OnMouseDown <- function(buttons,x,y) {
+    set.device(winA)
+
+    if(stage==1) {
+      ## Set endpoints and zoom window B
+      if(length(buttons) > 0 && buttons[1]==0) {
+        Date1 <<- ndc.tsimage.date(x,y)
+        if(Date1 > Date2) Date2 <<- maxDate
+        DateZ <<- Date1
+      }
+      if(length(buttons) > 0 && buttons[1]==2) {
+        Date2 <<- ndc.tsimage.date(x,y)
+        if(Date2 < Date1) Date1 <<- minDate
+        DateZ <<- Date2
+      }
+    }
+
+    if(stage==2 || stage==3) {
+      ## Zoom window B.
+      if(length(buttons) > 0 && buttons[1]==0) {
+        DateZ <<- ndc.tsimage.date(x,y)
+      }
+    }
+
+    if(stage==4) {
+      ## Determine selected profile.
+      if(length(buttons) > 0 && buttons[1]==0) {
+        day <- twilights$Twilight
+        hour <- hour.offset(as.hour(twilights$Twilight),offset)
+        k <- (ndc.closest(x,y,c(day,day,day),c(hour-24,hour,hour+24))-1)%%length(day)+1
+        ## Redraw
+        cache(k)
+      }
+    }
+
+    winA.draw()
+    winB.draw()
+    NULL
+  }
+
+
+  ## onMouseDown callback for profile window
+  winB.OnMouseDown <- function(buttons,x,y) {
+    set.device(winB)
+
+    if(stage==1) {
+      ## Set endpoint and zoom
+      if(length(buttons) > 0 && buttons[1]==0) {
+        Date1 <<- ndc.tsimage.date(x,y)
+        if(Date1 > Date2) Date2 <<- maxDate
+      }
+      if(length(buttons) > 0 && buttons[1]==2) {
+        Date2 <<- ndc.tsimage.date(x,y)
+        if(Date2 < Date1) Date1 <<- minDate
+      }
+    }
+
+    if(stage==2) {
+      ## Add segments to include or exclude
+      if(length(buttons) > 0 && (buttons[1]==0 || buttons[1]==2)) {
+        seed <<- c(ndc.tsimage.date(x,y),seed)
+        include <<- c(buttons[1]==0,include)
+
+        ## Recompute twilights
+        twilights <<- find.twilights(tagdata,threshold=threshold,
+                                     include=seed[include],exclude=seed[!include],
+                                     extend=extend,dark.min=dark.min)
+        twilights$Deleted <<- logical(nrow(twilights))
+        twilights$Marker <<- integer(nrow(twilights))
+        twilights$Inserted <<- logical(nrow(twilights))
+
+
+      }
+    }
+
+    if(stage==3) {
+      ## Add twilights
+      if(length(buttons) > 0 && buttons[1]==0) {
+        twilights <<- rbind(twilights,
+                            data.frame(Twilight=ndc.tsimage.date(x,y),
+                                       Rise=FALSE,
+                                       Deleted=FALSE,
+                                       Marker=0,
+                                       Inserted=TRUE))
+      }
+      if(length(buttons) > 0 && buttons[1]==2) {
+        twilights <<- rbind(twilights,
+                            data.frame(Twilight=ndc.tsimage.date(x,y),
+                                       Rise=TRUE,
+                                       Deleted=FALSE,
+                                       Marker=0,
+                                       Inserted=TRUE))
+      }
+    }
+
+    if(stage==4) {
+      ## Button 1 -> record location
+      if(length(buttons) > 0 && buttons[1]==0) {
+        changed <<- TRUE
+        edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
+                      grconvertY(y,from="ndc",to="user"))
+      }
+      ## Button 2 -> toggle deletion
+      if(length(buttons) > 0 && buttons[1]==2) {
+        twilights$Deleted[index] <<- !twilights$Deleted[index]
+        cache(index)
+      }
+    }
+
+    winA.draw()
+    winB.draw()
+    NULL
+  }
+
+
+  ## onKeybd callback for both windows
+  onKeybd <- function(key) {
+    ## Common keybindings
+    ## q : quit
+    if(key=="q") return(-1)
+    ## +/- : zoom time window around threshold crossing
+    if(key=="+") {
+      zoom <<- max(zoom-2,1)
+      if(stage==4) cache(index)
+    }
+    if(key=="-") {
+      zoom <<- min(zoom+2,24)
+      if(stage==4) cache(index)
+    }
+
+    if(stage==1) {
+      ## Stage 1 keybindings
+      ## a : accept and advance to next stage
+      if(key=="a") {
+        minDate <<- Date1
+        maxDate <<- Date2
+        tagdata <<- tagdata[tagdata$Date >= minDate & tagdata$Date <= maxDate,]
+        DateZ <<- NULL
+        stage <<- 2
+      }
+    } else if(stage==2) {
+      ## Stage 2 keybindings
+      ## a : accept and advance to next stage
+      if(key=="a") {
+        index <<- 1
+        DateZ <<- NULL
+        stage <<- 3
+      }
+      if(key=="u") {
+        if(length(seed)>0) {
+          seed <<- seed[-1]
+          include <<- include[-1]
+        }
+      }
+    } else if(stage==3) {
+      ## Stage 3 keybindings
+      ## a : accept and advance to next stage
+      if(key=="a") {
+        twilights$Twilight3 <<- twilights$Twilight
+        twilights$Marker3 <<- twilights$Marker
+        ks <- order(twilights$Twilight)
+        twilights <<- twilights[ks,]
+        cache(ks[index])
+        zoom <<- 6
+        stage <<- 4
+      }
+      ## u : undo twilight insertions
+      if(key=="u") {
+        n <- nrow(twilights)
+        if(twilights$Inserted[n]) twilights <<- twilights[-n,]
+        index <<- nrow(twilights)
+      }
+      ## Markers
+      if(key >= "0" && key <= "9") {
+        marker <- as.numeric(key)
+        index <<- nrow(twilights)
+        twilights$Marker[index] <<- marker
+        if(marker > 0 && marker <= NROW(fixed))
+          twilights$Twilight[index] <<- twilight(twilights$Twilight[index],
+                                                 fixed[marker,1],fixed[marker,2],
+                                                 rise=twilights$Rise[index],
+                                                 zenith=zenith)
+      }
+    } else if(stage==4) {
+      ## Stage 4 keybindings
+      ## a : accept changes
+      if(key=="a") {
+        twilights$Twilight[index] <<- .POSIXct(edit.pt[1],"GMT")
+        edit.pt <<- NULL
+        changed <<- FALSE
+      }
+      ## i : toggle image display
+      if(key=="i") {
+        show.image <<- !show.image
+      }
+      ## x : reset selection
+      if(key=="r") {
+        cache(index)
+      }
+      ## d : toggle deletion
+      if(key=="d") {
+        twilights$Deleted[index] <<- !twilights$Deleted[index]
+      }
+      ## p : toggle display of points in the profile window
+      if(key=="p") {
+        show.obs <<- !show.obs
+      }
+      ## u : undo edits
+      if(key=="u") {
+        twilights$Twilight[index] <<- twilights$Twilight3[index]
+        twilights$Marker[index] <<- twilights$Marker3[index]
+      }
+      ## Left/Right : jump to neighbouring twilight
+      if(key=="Left") {
+        cache(max(index-1,1))
+      }
+      if(key=="Right") {
+        cache(min(index+1,nrow(twilights)))
+      }
+      ## Markers
+      if(key >= "0" && key <= "9") {
+        marker <- as.numeric(key)
+        twilights$Marker[index] <<- marker
+        if(marker > 0 && marker <= NROW(fixed))
+          twilights$Twilight[index] <<- twilight(twilights$Twilight[index],
+                                                 fixed[marker,1],fixed[marker,2],
+                                                 rise=twilights$Rise[index],
+                                                 zenith=zenith)
+      }
+    }
+
+    ## Redraw
+    winA.draw()
+    winB.draw()
+    NULL
+  }
+
+
+  ## Set up twilights window
+  X11(width=width,height=height)
+  winA <- dev.cur()
+  winA.draw()
+  setGraphicsEventHandlers(
+    which=winA,
+    prompt="Selection Window",
+    onMouseDown=winA.OnMouseDown,
+    onKeybd=onKeybd)
+  ## Set up profile window
+  X11(width=width,height=height)
+  winB <- dev.cur()
+  winB.draw()
+  setGraphicsEventHandlers(
+    which=winB,
+    prompt="Edit Window",
+    onMouseDown=winB.OnMouseDown,
+    onKeybd=onKeybd)
+  focus(winA)
+  ## Monitor for events
+  tryCatch({
+      getGraphicsEvent()
+      dev.off(winB)
+      dev.off(winA)
+      twilights
+  }, finally=twilights)
+}
 
