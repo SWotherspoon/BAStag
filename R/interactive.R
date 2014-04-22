@@ -225,6 +225,7 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
     c(start=start,end=end)
   }
 
+
   ## Draw the selection window
   winA.init <- function() {
     set.device(winA)
