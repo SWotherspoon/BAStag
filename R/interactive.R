@@ -1406,6 +1406,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
 ##'\item{\code{Twilight3}}{Twilight from stage 3}
 ##' \item{\code{Marker3}}{Marker from stage 3}
 ##' where each row corresponds to a single twilight.
+##' @importFrom SGAT twilight
 ##' @export
 process.light <- function(tagdata,threshold,offset=0,lmax=64,
                           extend=0,dark.min=0,
