@@ -534,10 +534,12 @@ find.chunk24 <- function(tagdata,threshold) {
 ##' @title Twilight Adjustment
 ##' @param twilights dataframe of twilight times.
 ##' @param interval the sampling interval.
+##' @param fixed logical vector indicating twilights to be held fixed.
 ##' @return a dataframe of bias correct twilight times.
 ##' @export
-twilight.adjust <- function(twilights,interval) {
-  twilights$Twilight[!twilights$Rise] <- twilights$Twilight[!twilights$Rise]-interval
+twilight.adjust <- function(twilights,interval,fixed=FALSE) {
+  adj <- !twilights$Rise & !fixed
+  twilights$Twilight[adj] <- twilights$Twilight[adj]-interval
   twilights
 }
 

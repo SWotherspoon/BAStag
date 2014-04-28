@@ -1047,6 +1047,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' 'a' \tab Toggle auto advance mode \cr
 ##' 'r' \tab Resets the zoom to the encompass the entire track \cr
 ##' 'z' \tab Zooms to the locations surrounding the current location \cr
+##' 'u' \tab Resets any edits to the current point \cr
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous location \cr
 ##' 'Right arrow' \tab Jump to next location \cr
@@ -1093,11 +1094,14 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
                         map.width=8,map.height=8,
                         palette=default.palette[c(5,2,1,12,3,4)]) {
 
+
   add.alpha <- function(col,alpha) {
     col <- col2rgb(col)/255
     rgb(red=col[1],green=col[2],blue=col[3],alpha=alpha)
   }
 
+  ## Store original path
+  path0 <- path
   ## Order twilights and check deleted
   twilights <- twilights[order(twilights$Twilight),]
   ## Extract date and hour of twilight
@@ -1138,7 +1142,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   winA.draw <- function() {
     set.device(winA)
     image.draw(NULL,twilights,offset=offset,mark=index,
-               points.col=palette[ifelse(invalid,3,ifelse(twilights$Rise,1,2))],
+               points.col=palette[ifelse(fixed,4,ifelse(invalid,3,ifelse(twilights$Rise,1,2)))],
                point.cex=point.cex)
   }
 
@@ -1215,6 +1219,9 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
     if(key=="Right") {
       index <<- min(index+1,nrow(path))
     }
+    if(key=="u") {
+      path[index,] <<- path0[index,]
+    }
 
     ## Redraw
     winA.draw()
@@ -1226,10 +1233,12 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   winB.OnMouseDown <- function(buttons,x,y) {
     set.device(winB)
     ## Button 1 -> move location
-    if(length(buttons) > 0 && buttons[1]==0 && !fixed[index]) {
-      path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
-                         grconvertY(y,from="ndc",to="user"))
-      invalid <<- !fixed & is.invalid(path)
+    if(length(buttons) > 0 && buttons[1]==0) {
+      if(!fixed[index]) {
+        path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
+                           grconvertY(y,from="ndc",to="user"))
+        invalid <<- !fixed & is.invalid(path)
+      }
       if(auto.advance) index <<- min(index+1,nrow(path))
     }
     ## Button 2 -> centre map
@@ -1239,6 +1248,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
                    grconvertY(y,from="ndc",to="user"))
       set.zoom(xyscl)
     }
+    winA.draw()
     winB.draw()
     NULL
   }
@@ -1430,8 +1440,6 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
   seed <- include <- NULL
   zoom <- 6
 
-
-
   ## Cached data subsets
   stage <- 1
   index <- NULL
@@ -1601,7 +1609,6 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
         twilights$Marker <<- integer(nrow(twilights))
         twilights$Inserted <<- logical(nrow(twilights))
 
-
       }
     }
 
@@ -1649,7 +1656,13 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
   onKeybd <- function(key) {
     ## Common keybindings
     ## q : quit
-    if(key=="q") return(-1)
+    if(key=="q") {
+      if(!is.null(twilights)) {
+        twilights <<- twilights[order(twilights$Twilight),]
+        attr(twilights,"interval") <- c(minDate,maxDate)
+      }
+      return(-1)
+    }
     ## +/- : zoom time window around threshold crossing
     if(key=="+") {
       zoom <<- max(zoom-2,1)
@@ -1682,6 +1695,14 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
         if(length(seed)>0) {
           seed <<- seed[-1]
           include <<- include[-1]
+
+          ## Recompute twilights
+          twilights <<- find.twilights(tagdata,threshold=threshold,
+                                       include=seed[include],exclude=seed[!include],
+                                       extend=extend,dark.min=dark.min)
+          twilights$Deleted <<- logical(nrow(twilights))
+          twilights$Marker <<- integer(nrow(twilights))
+          twilights$Inserted <<- logical(nrow(twilights))
         }
       }
     } else if(stage==3) {
