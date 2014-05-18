@@ -3,6 +3,40 @@ default.palette <- c(red="#E41A1C", blue="#377EB8", green="#4DAF4A", violet="#98
                      black="#000000", grey3="#333333", grey6="#666666", grey9="#999999", greyC="#CCCCCC")
 
 
+
+
+##' Mouse button identification
+##'
+##' Identify left and right mouse button clicks from the buttons
+##' vector passed to the callbacks used by getGraphicsEvent.  This is
+##' non-trivial because the windows and MacOS behaviours are subtly
+##' different.
+##'
+##' @title Mouse button identification
+##' @param buttons vector passed to callbacks used by getGraphicsEvent.
+##' @return Returns 1 for left click, 2 for right click and 0
+##' otherwise.
+mouse.button <- function(buttons) {
+  n <- length(buttons)
+  ## This is right click on a mac
+  if(n >= 2 && buttons[1]==0 && buttons[2]==1) return(2)
+
+  ## This is both buttons on windows => treat as neither.
+  if(n >= 2 && buttons[1]==0 && buttons[2]==2) return(0)
+
+  ## This is right click on windows
+  if(n >= 1 && buttons[1]==2) return(2)
+
+  ## This is left click
+  if(n >= 1 && buttons[1]==0) return(1)
+
+  ## Other combinations => 0
+  0
+}
+
+
+
+
 ##' Image plot with twilight points and ribbons
 ##'
 ##' Draws a light image with twilight points or twilight ribbon. If
@@ -268,7 +302,7 @@ select.subset <- function(tagdata,offset=0,extend=6,lmax=64,
   winA.OnMouseMove <- function(buttons,x,y) {
     set.device(winA)
     ## Button 1 drag selects range
-    if(length(buttons) > 0 && buttons[1]==0) {
+    if(length(buttons) > 0 && mouse.button(buttons)==1) {
       date <- ceilingDate(.POSIXct(grconvertX(x,from="ndc",to="user"),"GMT"))
       date <- min(max(date,minDate),maxDate)
       if(date < startDate) {
@@ -431,17 +465,19 @@ select.night <- function(tagdata,threshold,offset=0,
   winA.OnMouseDown <- function(buttons,x,y) {
     set.device(winA)
 
-    ## Add segments to include or exclude
-    if(length(buttons) > 0 && buttons[1]==0)
-      include <<- c(ndc.tsimage.date(x,y),include)
-    if(length(buttons) > 0 && buttons[1]==2)
-      exclude <<- c(ndc.tsimage.date(x,y),exclude)
-
-    ## Recompute twilights
-    if(length(buttons) > 0 && (buttons[1]==0 || buttons[1]==2))
-      twilights <<- find.twilights(tagdata,threshold=threshold,
-                                   include=include,exclude=exclude,
-                                   extend=extend,dark.min=dark.min)
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      ## Add segments to include or exclude
+      if(b==1)
+        include <<- c(ndc.tsimage.date(x,y),include)
+      if(b==2)
+        exclude <<- c(ndc.tsimage.date(x,y),exclude)
+      ## Recompute twilights
+      if(b==1 || b==2)
+        twilights <<- find.twilights(tagdata,threshold=threshold,
+                                     include=include,exclude=exclude,
+                                     extend=extend,dark.min=dark.min)
+    }
     winA.draw()
     NULL
   }
@@ -613,7 +649,7 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   ## onMouseDown callback for twilights window.
   winA.OnMouseDown <- function(buttons,x,y) {
     ## Determine selected profile.
-    if(length(buttons) > 0 && buttons[1]==0) {
+    if(length(buttons) > 0 && mouse.button(buttons)==1) {
       set.device(winA)
       k <- (ndc.closest(x,y,c(day,day,day),c(hour-24,hour,hour+24))-1)%%length(day)+1
       ## Redraw
@@ -682,16 +718,19 @@ select.twilight <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   ## onMouseDown callback for profile window
   winB.OnMouseDown <- function(buttons,x,y) {
     set.device(winB)
-    ## Button 1 -> record location
-    if(length(buttons) > 0 && buttons[1]==0) {
-      changed <<- TRUE
-      edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
-                    grconvertY(y,from="ndc",to="user"))
-    }
-    ## Button 2 -> toggle deletion
-    if(length(buttons) > 0 && buttons[1]==2) {
-      twilights$Deleted[index] <<- !twilights$Deleted[index]
-      cache(index)
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      ## Button 1 -> record location
+      if(b==1) {
+        changed <<- TRUE
+        edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
+                      grconvertY(y,from="ndc",to="user"))
+      }
+      ## Button 2 -> toggle deletion
+      if(b==2) {
+        twilights$Deleted[index] <<- !twilights$Deleted[index]
+        cache(index)
+      }
     }
     winB.draw()
     NULL
@@ -884,7 +923,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   ## onMouseDown callback for twilights window.
   winA.OnMouseDown <- function(buttons,x,y) {
     set.device(winA)
-    if(length(buttons) > 0 && buttons[1]==0) {
+    if(length(buttons) > 0 && mouse.button(buttons)==1) {
       ## Determine selected profile.
       set.device(winA)
       xs <- grconvertX(c(day,day,day),from="user",to="ndc")
@@ -961,21 +1000,24 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 
   ## onMouseDown callback for profile window
   winB.OnMouseDown <- function(buttons,x,y) {
-    ## Button 1 -> record location and do complete draw
-    if(length(buttons) > 0 && buttons[1]==0) {
-      changed <<- TRUE
-      start <<- grconvertX(x,from="ndc",to="user")
-      selected <<- logical(length(date[[2]]))
-      end <<- start
-      winB.init()
-    }
-    ## Button 2 -> toggle selected points
-    if(length(buttons) > 0 && buttons[1]==2) {
-      changed <<- TRUE
-      xs <- grconvertX(date[[2]],from="user",to="ndc")
-      ys <- grconvertY(lght[[2]],from="user",to="ndc")
-      k <- which.min((x-xs)^2+(y-ys)^2)
-      selected[k] <<- (selected[k]==FALSE)
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      ## Button 1 -> record location and do complete draw
+      if(b==1) {
+        changed <<- TRUE
+        start <<- grconvertX(x,from="ndc",to="user")
+        selected <<- logical(length(date[[2]]))
+        end <<- start
+        winB.init()
+      }
+      ## Button 2 -> toggle selected points
+      if(b==2) {
+        changed <<- TRUE
+        xs <- grconvertX(date[[2]],from="user",to="ndc")
+        ys <- grconvertY(lght[[2]],from="user",to="ndc")
+        k <- which.min((x-xs)^2+(y-ys)^2)
+        selected[k] <<- (selected[k]==FALSE)
+      }
     }
     winB.draw()
     NULL
@@ -984,7 +1026,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
   ## onMouseMove callback for profile window
   winB.OnMouseMove <- function(buttons,x,y) {
     ## Button 1 drag to select crepuscular period
-    if(length(buttons) > 0 && buttons[1]==0) {
+    if(length(buttons) > 0 && mouse.button(buttons)==1) {
       end <<- grconvertX(x,from="ndc",to="user")
       sel <- (date[[2]] >= min(start,end) & date[[2]] <= max(start,end))
       if(any(sel!=selected)) {
@@ -1232,21 +1274,24 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
   ## onMouseDown callback for path window
   winB.OnMouseDown <- function(buttons,x,y) {
     set.device(winB)
-    ## Button 1 -> move location
-    if(length(buttons) > 0 && buttons[1]==0) {
-      if(!fixed[index]) {
-        path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
-                           grconvertY(y,from="ndc",to="user"))
-        invalid <<- !fixed & is.invalid(path)
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      ## Button 1 -> move location
+      if(b==1) {
+        if(!fixed[index]) {
+          path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
+                             grconvertY(y,from="ndc",to="user"))
+          invalid <<- !fixed & is.invalid(path)
+        }
+        if(auto.advance) index <<- min(index+1,nrow(path))
       }
-      if(auto.advance) index <<- min(index+1,nrow(path))
-    }
-    ## Button 2 -> centre map
-    if(length(buttons) > 0 && buttons[1]==2) {
-      ## Map window parameters
-      centre <<- c(grconvertX(x,from="ndc",to="user"),
-                   grconvertY(y,from="ndc",to="user"))
-      set.zoom(xyscl)
+      ## Button 2 -> centre map
+      if(b==2) {
+        ## Map window parameters
+        centre <<- c(grconvertX(x,from="ndc",to="user"),
+                     grconvertY(y,from="ndc",to="user"))
+        set.zoom(xyscl)
+      }
     }
     winA.draw()
     winB.draw()
@@ -1540,36 +1585,39 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
   ## onMouseDown callback for twilights window.
   winA.OnMouseDown <- function(buttons,x,y) {
     set.device(winA)
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
 
-    if(stage==1) {
-      ## Set endpoints and zoom window B
-      if(length(buttons) > 0 && buttons[1]==0) {
-        Date1 <<- ndc.tsimage.date(x,y)
-        if(Date1 > Date2) Date2 <<- maxDate
-        DateZ <<- Date1
+      if(stage==1) {
+        ## Set endpoints and zoom window B
+        if(b==1) {
+          Date1 <<- ndc.tsimage.date(x,y)
+          if(Date1 > Date2) Date2 <<- maxDate
+          DateZ <<- Date1
+        }
+        if(b==2) {
+          Date2 <<- ndc.tsimage.date(x,y)
+          if(Date2 < Date1) Date1 <<- minDate
+          DateZ <<- Date2
+        }
       }
-      if(length(buttons) > 0 && buttons[1]==2) {
-        Date2 <<- ndc.tsimage.date(x,y)
-        if(Date2 < Date1) Date1 <<- minDate
-        DateZ <<- Date2
-      }
-    }
 
-    if(stage==2 || stage==3) {
-      ## Zoom window B.
-      if(length(buttons) > 0 && buttons[1]==0) {
-        DateZ <<- ndc.tsimage.date(x,y)
+      if(stage==2 || stage==3) {
+        ## Zoom window B.
+        if(b==1) {
+          DateZ <<- ndc.tsimage.date(x,y)
+        }
       }
-    }
 
-    if(stage==4) {
-      ## Determine selected profile.
-      if(length(buttons) > 0 && buttons[1]==0) {
-        day <- twilights$Twilight
-        hour <- hour.offset(as.hour(twilights$Twilight),offset)
-        k <- (ndc.closest(x,y,c(day,day,day),c(hour-24,hour,hour+24))-1)%%length(day)+1
-        ## Redraw
-        cache(k)
+      if(stage==4) {
+        ## Determine selected profile.
+        if(b==1) {
+          day <- twilights$Twilight
+          hour <- hour.offset(as.hour(twilights$Twilight),offset)
+          k <- (ndc.closest(x,y,c(day,day,day),c(hour-24,hour,hour+24))-1)%%length(day)+1
+          ## Redraw
+          cache(k)
+        }
       }
     }
 
@@ -1583,69 +1631,71 @@ process.light <- function(tagdata,threshold,offset=0,lmax=64,
   winB.OnMouseDown <- function(buttons,x,y) {
     set.device(winB)
 
-    if(stage==1) {
-      ## Set endpoint and zoom
-      if(length(buttons) > 0 && buttons[1]==0) {
-        Date1 <<- ndc.tsimage.date(x,y)
-        if(Date1 > Date2) Date2 <<- maxDate
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      if(stage==1) {
+        ## Set endpoint and zoom
+        if(b==1) {
+          Date1 <<- ndc.tsimage.date(x,y)
+          if(Date1 > Date2) Date2 <<- maxDate
+        }
+        if(b==2) {
+          Date2 <<- ndc.tsimage.date(x,y)
+          if(Date2 < Date1) Date1 <<- minDate
+        }
       }
-      if(length(buttons) > 0 && buttons[1]==2) {
-        Date2 <<- ndc.tsimage.date(x,y)
-        if(Date2 < Date1) Date1 <<- minDate
+
+      if(stage==2) {
+        ## Add segments to include or exclude
+        if(b==1 || b==2) {
+          seed <<- c(ndc.tsimage.date(x,y),seed)
+          include <<- c(buttons[1]==0,include)
+
+          ## Recompute twilights
+          twilights <<- find.twilights(tagdata,threshold=threshold,
+                                       include=seed[include],exclude=seed[!include],
+                                       extend=extend,dark.min=dark.min)
+          twilights$Deleted <<- logical(nrow(twilights))
+          twilights$Marker <<- integer(nrow(twilights))
+          twilights$Inserted <<- logical(nrow(twilights))
+
+        }
+      }
+
+      if(stage==3) {
+        ## Add twilights
+        if(b==1) {
+          twilights <<- rbind(twilights,
+                              data.frame(Twilight=ndc.tsimage.date(x,y),
+                                         Rise=FALSE,
+                                         Deleted=FALSE,
+                                         Marker=0,
+                                         Inserted=TRUE))
+        }
+        if(b==2) {
+          twilights <<- rbind(twilights,
+                              data.frame(Twilight=ndc.tsimage.date(x,y),
+                                         Rise=TRUE,
+                                         Deleted=FALSE,
+                                         Marker=0,
+                                         Inserted=TRUE))
+        }
+      }
+
+      if(stage==4) {
+        ## Button 1 -> record location
+        if(b==1) {
+          changed <<- TRUE
+          edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
+                        grconvertY(y,from="ndc",to="user"))
+        }
+        ## Button 2 -> toggle deletion
+        if(b==2) {
+          twilights$Deleted[index] <<- !twilights$Deleted[index]
+          cache(index)
+        }
       }
     }
-
-    if(stage==2) {
-      ## Add segments to include or exclude
-      if(length(buttons) > 0 && (buttons[1]==0 || buttons[1]==2)) {
-        seed <<- c(ndc.tsimage.date(x,y),seed)
-        include <<- c(buttons[1]==0,include)
-
-        ## Recompute twilights
-        twilights <<- find.twilights(tagdata,threshold=threshold,
-                                     include=seed[include],exclude=seed[!include],
-                                     extend=extend,dark.min=dark.min)
-        twilights$Deleted <<- logical(nrow(twilights))
-        twilights$Marker <<- integer(nrow(twilights))
-        twilights$Inserted <<- logical(nrow(twilights))
-
-      }
-    }
-
-    if(stage==3) {
-      ## Add twilights
-      if(length(buttons) > 0 && buttons[1]==0) {
-        twilights <<- rbind(twilights,
-                            data.frame(Twilight=ndc.tsimage.date(x,y),
-                                       Rise=FALSE,
-                                       Deleted=FALSE,
-                                       Marker=0,
-                                       Inserted=TRUE))
-      }
-      if(length(buttons) > 0 && buttons[1]==2) {
-        twilights <<- rbind(twilights,
-                            data.frame(Twilight=ndc.tsimage.date(x,y),
-                                       Rise=TRUE,
-                                       Deleted=FALSE,
-                                       Marker=0,
-                                       Inserted=TRUE))
-      }
-    }
-
-    if(stage==4) {
-      ## Button 1 -> record location
-      if(length(buttons) > 0 && buttons[1]==0) {
-        changed <<- TRUE
-        edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
-                      grconvertY(y,from="ndc",to="user"))
-      }
-      ## Button 2 -> toggle deletion
-      if(length(buttons) > 0 && buttons[1]==2) {
-        twilights$Deleted[index] <<- !twilights$Deleted[index]
-        cache(index)
-      }
-    }
-
     winA.draw()
     winB.draw()
     NULL
