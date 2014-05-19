@@ -1129,7 +1129,7 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' @param palette a colour palette of 8 colours.
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @export
-select.path <- function(path,twilights,offset=0,fixed=F,zenith=96,aspect=1,
+select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
                         contours=c(10,20,50),extend=1,auto.advance=F,
                         plot.map=NULL, is.invalid=function(path) logical(nrow(path)),
                         point.cex=0.5,width=12,height=4,
