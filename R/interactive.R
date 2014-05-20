@@ -1183,9 +1183,11 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
   ## Draw the twilights window
   winA.draw <- function() {
     set.device(winA)
+    col <- palette[ifelse(fixed,4,
+                          ifelse(is.na(invalid) | invalid,3,
+                                 ifelse(twilights$Rise,1,2)))]
     image.draw(NULL,twilights,offset=offset,mark=index,
-               points.col=palette[ifelse(fixed,4,ifelse(invalid,3,ifelse(twilights$Rise,1,2)))],
-               point.cex=point.cex)
+               points.col=col,point.cex=point.cex)
   }
 
   ## Draw light profiles
