@@ -595,4 +595,28 @@ drift.adjust <- function(time,start,end) {
 }
 
 
-
+##' Summarise data within intervals sourrinding twilight
+##'
+##' Given a sequence of twilight times and a time series of responses,
+##' for each twilight the responses in an interval surrounding
+##' twilight are extracted and summarized.
+##'
+##' @title Extract twilight data
+##' @param twl the sequence of estimated twilight times as POSIXct.
+##' @param date the sequence of sample times as POSIXct.
+##' @param y the sequence of responses.
+##' @param before the interval (hours) before twilight to include.
+##' @param after the interval (hours) after twilight to include.
+##' @param FUN summary function
+##' @return the data summary for each twilight.
+##' @export
+twilight.data <- function(twl,date,y,before=4,after=4,
+                          FUN=function(x) {
+                            if(all(is.na(x)))
+                              c(NA,NA) else
+                            c(mean=mean(x,na.rm=TRUE),sd=sd(x,na.rm=TRUE))}) {
+  mapply(
+    function(twl,before,after)
+         FUN(response[tm-3600*before <= date & date <= tm+3600*after]),
+    twl,before,after)
+}
