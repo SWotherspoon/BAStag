@@ -611,12 +611,12 @@ drift.adjust <- function(time,start,end) {
 ##' @return the data summary for each twilight.
 ##' @export
 twilight.data <- function(twl,date,y,before=4,after=4,
-                          FUN=function(x) {
-                            if(all(is.na(x)))
-                              c(NA,NA) else
-                            c(mean=mean(x,na.rm=TRUE),sd=sd(x,na.rm=TRUE))}) {
-  mapply(
-    function(twl,before,after)
-         FUN(response[tm-3600*before <= date & date <= tm+3600*after]),
-    twl,before,after)
+                          FUN=function(y) {
+                              if(all(is.na(y)))
+                                  c(NA,NA) else
+                              c(mean=mean(y,na.rm=TRUE),sd=sd(y,na.rm=TRUE))}) {
+    mapply(
+        function(tm,before,after)
+        FUN(y[tm-3600*before <= date & date <= tm+3600*after]),
+        twl,before,after)
 }
