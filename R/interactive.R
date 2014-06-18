@@ -186,6 +186,151 @@ ndc.tsimage.date <- function(x,y) {
 }
 
 
+##' Interactively delete observations from a time series
+##'
+##' Interactively delete observations from a time series.  The time
+##' series is displayed. Left mouse button clicks zoom on a region of
+##' the plot; right mouse button clicks toggle deletion of individual
+##' points.
+##'
+##' \tabular{ll}{
+##' 'q' \tab Quits, returning a indicator vector \cr
+##' 'r' \tab Reset zoom to full plot range\cr
+##' 's' \tab Toggle reseting of y axes scale on zoom\cr
+##' '+'/'-' \tab Adjust the level of zoom\cr
+##' 'Left/Right arrow' \tab Jump forward or backward in hte time series \cr
+##' }
+##'
+##'
+##' @title Select data
+##' @param date sample times.
+##' @param r recorded response.
+##' @param deleted initial logical vector indicating which
+##' observations are to be deleted.
+##' @param extend the period (in hours) before and after the selection
+##' to be shown in the zoom window.
+##' @param xlab label for the x axis
+##' @param ylab label for the y axis
+##' @param width width of the interface windows.
+##' @param height height of the interface windows.
+##' @param palette a colour palette of 4 colours.
+##' @param ... additional parameters to pass to plot.
+##' @return a logical vector that indicates the observations to be deleted.
+##' @export
+select.data <- function(date,r,deleted=NULL,extend=48,
+                        xlab="Date",ylab="",width=12,height=4,
+                        palette=default.palette[c(2,1)],...) {
+
+  if(is.null(deleted)) deleted <- logical(length(date))
+  zoom <- 3600*extend
+  minDate <- min(date)
+  maxDate <- max(date)
+  xlim <- c(minDate,maxDate)
+  ylim <- range(r,na.rm=TRUE)
+  rescale <- FALSE
+
+
+  ## Select device
+  set.device <- function(dev) if(dev.cur()!=dev) dev.set(dev)
+  ## Focus if possible
+  focus <- if(exists("bringToTop",mode="function")) bringToTop else set.device
+
+  ## Draw the selection window
+  winA.draw <- function() {
+    set.device(winA)
+    ## Plot data
+    keep <- date >= xlim[1] & date <= xlim[2]
+    if(rescale) ylim <<- range(r[keep],na.rm=TRUE)
+    plot(date[keep],r[keep],xlab=xlab,ylab=ylab,ylim=ylim,
+         col=ifelse(deleted[keep],palette[2],palette[1]),...)
+  }
+
+  ## onMouseDown callback for selection window.
+  winA.OnMouseDown <- function(buttons,x,y) {
+    set.device(winA)
+
+    if(length(buttons) > 0) {
+      b <- mouse.button(buttons)
+      ## Add segments to include or exclude
+      if(b==1) {
+        ## Set zoom
+        zoom <<- 3600*extend
+        x <- grconvertX(x,from="ndc",to="user")
+        xlim <<- .POSIXct(x+zoom*c(-1,1),"GMT")
+      }
+      if(b==2) {
+        ## Toggle deletion of closest point
+        k <- ndc.closest(x,y,date,r)
+        deleted[k] <<- !deleted[k]
+      }
+      winA.draw()
+    }
+    NULL
+  }
+
+  ## onKeybd callback for both windows
+  onKeybd <- function(key) {
+    ## q quits
+    if(key=="q") return(-1)
+
+    ## r : reset plot
+    if(key=="r") {
+      xlim <<- c(minDate,maxDate)
+      zoom <<- 3600*extend
+    }
+
+    if(key=="s") {
+      rescale <<- !rescale
+      if(!rescale) ylim <<- range(r,na.rm=TRUE)
+    }
+
+    ## +/- : expand/shrink zoom
+    if(key=="+") {
+      zoom <<- zoom/2
+      xlim <<- .POSIXct(mean(xlim)+zoom*c(-1,1),"GMT")
+    }
+
+    if(key=="-") {
+      zoom <<- 2*zoom
+      if(zoom < as.numeric(maxDate)-as.numeric(minDate)) {
+        xlim <<- .POSIXct(mean(xlim)+zoom*c(-1,1),"GMT")
+      } else {
+        xlim <<- c(minDate,maxDate)
+        zoom <<- 3600*extend
+      }
+    }
+
+    ## Left/Right : jump to neighbouring chunk
+    if(key=="Left") {
+      xlim <<- .POSIXct(xlim-2*zoom,"GMT")
+      if(xlim[1] < minDate) xlim <<- .POSIXct(c(minDate,minDate+2*zoom),"GMT")
+    }
+    if(key=="Right") {
+      xlim <<- .POSIXct(xlim+2*zoom,"GMT")
+      if(xlim[2] > maxDate) xlim <<- .POSIXct(c(maxDate-2*zoom,maxDate),"GMT")
+    }
+    ## Redraw
+    winA.draw()
+    NULL
+  }
+
+  ## Set up master window
+  X11(width=width,height=height)
+  winA <- dev.cur()
+  winA.draw()
+  focus(winA)
+  setGraphicsEventHandlers(
+    which=winA,
+    prompt="Select Data",
+    onMouseDown=winA.OnMouseDown,
+    onKeybd=onKeybd)
+  tryCatch({
+    getGraphicsEvent()
+    dev.off(winA)
+    deleted
+  }, finally=deleted)
+}
+
 
 ##' Interactively select data subsets
 ##'
