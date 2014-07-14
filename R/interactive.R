@@ -1223,16 +1223,17 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' left mouse click.
 ##'
 ##' The path is dislayed in another window, with the editable location
-##' highlighted.  The user can move the editable location with a left
-##' mouse click, or recentre the map with a right mouse click.  In
-##' auto advance mode, when a location is edited, the editable
-##' location advances to the next location in the sequence.
+##' highlighted.  The user can select the point to edit with a left
+##' mouse click, or move the editable location with a right mouse
+##' click.  In auto advance mode, when a location is edited, the
+##' editable location advances to the next location in the sequence.
 ##'
 ##' In either window
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 ##' 'a' \tab Toggle auto advance mode \cr
 ##' 'r' \tab Resets the zoom to the encompass the entire track \cr
+##' 'c' \tab Centres the zoomed window on the current point \cr
 ##' 'z' \tab Zooms to the locations surrounding the current location \cr
 ##' 'u' \tab Resets any edits to the current point \cr
 ##' '+'/'-' \tab Zoom in or out \cr
@@ -1390,6 +1391,12 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
     if(key=="r") {
       set.window(path)
     }
+    ## Centre on current point
+    if(key=="c") {
+      centre <<- path[index,]
+      set.zoom(xyscl)
+    }
+
     ## Zoom to locations surrounding current location
     if(key=="z") {
       set.window(path[max(1,index-extend):min(nrow(path),index+extend),])
@@ -1423,21 +1430,19 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
     set.device(winB)
     if(length(buttons) > 0) {
       b <- mouse.button(buttons)
-      ## Button 1 -> move location
+      ## Button 1 -> select point
       if(b==1) {
+        ## Select nearest point
+        index <<- ndc.closest(x,y,path[,1],path[,2])
+      }
+      ## Button 2 -> move location
+      if(b==2) {
         if(!fixed[index]) {
           path[index,] <<- c(grconvertX(x,from="ndc",to="user"),
                              grconvertY(y,from="ndc",to="user"))
           invalid <<- !fixed & is.invalid(path)
         }
         if(auto.advance) index <<- min(index+1,nrow(path))
-      }
-      ## Button 2 -> centre map
-      if(b==2) {
-        ## Map window parameters
-        centre <<- c(grconvertX(x,from="ndc",to="user"),
-                     grconvertY(y,from="ndc",to="user"))
-        set.zoom(xyscl)
       }
     }
     winA.draw()
