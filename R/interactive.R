@@ -1215,6 +1215,48 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 }
 
 
+
+
+
+
+##' Overlay a data when editing an initial path.
+##'
+##' The \code{edit.path} function allows the user to specify a
+##' function to overlay data on the map to assist is selecting an
+##' initial path.
+##'
+##' This function overlays a contour map of the difference between the
+##' observed twilight and true time of twilight for that location and
+##' day, where positive and negative contours are shown in different
+##' colours.  This can be useful is selecting an initial path for
+##' which the residuals are positive.
+##'
+##' @title Overlay data for path editing
+##' @param mode the overlay mode requested by \code{edit.path}
+##' @param xlim the horizontal limits of the map
+##' @param ylim the vertical limits of the map
+##' @param twilights the full twilight data
+##' @param index the index of the current twilight
+##' @param contours the contour levels to display
+##' @param zenith the solar zenith angle that defines twilight
+##' @seealso \code{\link{edit.twilight}}
+##' @export
+overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
+                                       contours=c(10,20,50),zenith=NULL) {
+  add.alpha <- function(col,alpha) {
+    col <- col2rgb(col)/255
+    rgb(red=col[1],green=col[2],blue=col[3],alpha=alpha)
+  }
+
+  if(mode!=0 && !is.null(zenith)) {
+    grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
+    grid <- solar.residuals(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
+    contour(grid,add=T,levels=c(0,contours),col=add.alpha(palette[5],0.5))
+    contour(grid,add=T,levels=-contours,col=add.alpha(palette[6],0.5))
+  }
+}
+
+
 ##' Interactively edit a path of twilight locations.
 ##'
 ##' Interactively edit a path of twilight locations.  A plot of the
@@ -1239,11 +1281,23 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous location \cr
 ##' 'Right arrow' \tab Jump to next location \cr
+##' '0'-'9' \tab Set the mode of the overlay plot \cr
 ##' }
 ##'
-##' The user may supply a function \code{plot.map} that plots the
+##' The user may supply a function \code{plot.map} that plots a
 ##' background map.  This must be a function of two arguments
 ##' \code{xlim} and \code{ylim} the determine the extent of the plot.
+##'
+##' The user may also supply a function \code{plot.overlay} that
+##' overlays twilight specific data on the map.  This must be a
+##' function of six arguments, \code{mode} is an integer flag used to
+##' indicate the style of the overlay plot, \code{twilights} is the
+##' dataframe of twilight data, \code{index} is the index of the
+##' current twilight, \code{xlim} and \code{ylim} determine the extent
+##' of the plot, and \code{...} is used to pass any additional
+##' arguments.  The mode of the overlay plot is set with the keys 0 to
+##' 9. We adopt the convention that mode 0 suppresses the overlay, but
+##' this is not enforced.
 ##'
 ##' The user may also supply a function \code{is.invalid} that accepts
 ##' the current path as an argument and returns a logical vector
@@ -1258,35 +1312,31 @@ select.crepuscular <- function(tagdata,twilights,offset=0,extend=6,threshold=NUL
 ##' @param offset the starting hour for the vertical axes.
 ##' @param fixed logical vector indicating which locations to hold
 ##' fixed.
-##' @param zenith the solar zenith angle that defines twilight.
 ##' @param aspect aspect ratio of the map.
-##' @param contours the levels (in minutes) of twilight residuals to
-##' contour.
 ##' @param extend the number of locations before and after the current
 ##' location to highlight.
 ##' @param auto.advance advance to next point afet edit.
 ##' @param plot.map A function to plot the background map.
-##' @param is.invalid A function check if a location is not valid.
+##' @param plot.overlay A function to overlay twilight specific data on the map.
+##' @param is.invalid A function that indicates if a location is not valid.
 ##' @param point.cex expansion factor for plot points.
 ##' @param width width of the selection window.
 ##' @param height height of the selection window.
 ##' @param map.width width of the map window.
 ##' @param map.height height of the map window.
 ##' @param palette a colour palette of 8 colours.
+##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @export
-select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
-                        contours=c(10,20,50),extend=1,auto.advance=F,
-                        plot.map=NULL, is.invalid=function(path) logical(nrow(path)),
-                        point.cex=0.5,width=12,height=4,
-                        map.width=8,map.height=8,
-                        palette=default.palette[c(5,2,1,12,3,4)]) {
+edit.path <- function(path,twilights,offset=0,fixed=F,
+                      aspect=1,extend=1,auto.advance=F,
+                      plot.map=NULL,plot.overlay=NULL,
+                      is.invalid=function(path) logical(nrow(path)),
+                      point.cex=0.5,width=12,height=4,
+                      map.width=8,map.height=8,
+                      palette=default.palette[c(5,2,1,12,3,4)],
+                      ...) {
 
-
-  add.alpha <- function(col,alpha) {
-    col <- col2rgb(col)/255
-    rgb(red=col[1],green=col[2],blue=col[3],alpha=alpha)
-  }
 
   ## Store original path
   path0 <- path
@@ -1298,8 +1348,11 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
   ## Set fixed points
   fixed <- rep(fixed,length.out=nrow(path))
   invalid <- !fixed & is.invalid(path)
+  ## Overlay mode
+  mode <- 0
 
-  ## Map xyscl parameters
+
+  ## Map scale parameters
   xlim <- ylim <- centre <- xyscl <- NULL
   set.zoom <- function(w) {
     xyscl <<- w
@@ -1352,13 +1405,9 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
       replayPlot(map)
     }
 
-    ## Overlay twilight residuals
-    if(!is.null(zenith)) {
-      grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
-      grid <- solar.residuals(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
-      contour(grid,add=T,levels=c(0,contours),col=add.alpha(palette[5],0.5))
-      contour(grid,add=T,levels=-contours,col=add.alpha(palette[6],0.5))
-    }
+    ## Overlays
+    if(!is.null(plot.overlay))
+      plot.overlay(twilights,index,mode,xlim,ylim,...)
     ## Show full path
     lines(path[,1],path[,2],col=palette[4])
     points(path[,1],path[,2],col=palette[4],pch=16,cex=0.4)
@@ -1401,7 +1450,7 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
     if(key=="z") {
       set.window(path[max(1,index-extend):min(nrow(path),index+extend),])
     }
-    ## +/- : zoom time window around threshold crossing
+    ## +/- : zoom map window around current centre
     if(key=="+") {
       set.zoom(5/8*xyscl)
     }
@@ -1415,8 +1464,12 @@ select.path <- function(path,twilights,offset=0,fixed=F,zenith=NULL,aspect=1,
     if(key=="Right") {
       index <<- min(index+1,nrow(path))
     }
+    ## Undo edit - reset to original location
     if(key=="u") {
       path[index,] <<- path0[index,]
+    }
+    if(key >= "0" && key <= "9") {
+      mode <<- key
     }
 
     ## Redraw
