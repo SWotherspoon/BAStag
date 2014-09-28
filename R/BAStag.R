@@ -30,7 +30,7 @@ NULL
 ##' @export
 read.lig <- function(file,skip=0) {
   ## Read csv file and add column names
-  d <- read.csv(file,header=F,skip=skip,
+  d <- read.csv(file,header=FALSE,skip=skip,
                 col.names=c("Valid","Date","Julian","Light"),
                 colClasses=c("character","character","numeric","integer"))
   ## Parse date
@@ -75,7 +75,7 @@ read.act <- function(file,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
   ## column names as R cannot detect the correct number of columns to
   ## read
-  d <- read.csv(file,header=F,skip=0,
+  d <- read.csv(file,header=FALSE,skip=0,
                 col.names=c("Valid","Date","Julian","Activity","Temp"))
   ## Parse date
   d$Date <- as.POSIXct(strptime(d$Date,"%d/%m/%y %H:%M:%S",tz="GMT"))
@@ -91,7 +91,7 @@ read.act2 <- function(file,d.lig=NULL,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
   ## column names as R cannot detect the correct number of columns to
   ## read
-  d <- read.csv(file,header=F,skip=0,
+  d <- read.csv(file,header=FALSE,skip=0,
                 col.names=c("Valid","Date","Julian","Activity","Wet"))
   ## Parse date
   d$Date <- as.POSIXct(strptime(d$Date,"%d/%m/%y %H:%M:%S",tz="GMT"))
@@ -134,7 +134,7 @@ read.tem2 <- function(file,d.lig=NULL,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
   ## column names as R cannot detect the correct number of columns to
   ## read
-  d <- read.csv(file,header=F,skip=0,
+  d <- read.csv(file,header=FALSE,skip=0,
                 col.names=c("Valid","Date","Julian","Temp"))
   ## Parse date
   d$Date <- as.POSIXct(strptime(d$Date,"%d/%m/%y %H:%M:%S",tz="GMT"))
@@ -229,7 +229,7 @@ tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
   day <- seq(date[1]-pad*dt,by=m*dt,length=n+1)
   y <- matrix(c(rep(NA,pad),y,rep(NA,m*n-pad-length(y))),m,n)
   ## Show as image, with hours wrapped to [0,24].
-  image(as.numeric(day),hour,t(y),axes=F,xlab=xlab,ylab=ylab,...)
+  image(as.numeric(day),hour,t(y),axes=FALSE,xlab=xlab,ylab=ylab,...)
   axis.POSIXct(1,day)
   axis(2,at=seq(0,48,by=4),labels=seq(0,48,by=4)%%24)
   box()
@@ -243,7 +243,7 @@ tsimage.locator <- function(im,n=512) {
   im <- im
   ## Select pixels and convert to date/time.
   loc <- locator(n)
-  im$date[.bincode(loc$x,as.numeric(im$date),right=F)]+3600*(loc$y-min(im$hour))
+  im$date[.bincode(loc$x,as.numeric(im$date),right=FALSE)]+3600*(loc$y-min(im$hour))
 }
 
 
