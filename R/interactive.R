@@ -381,18 +381,16 @@ select.data <- function(date,r,deleted=NULL,extend=48,
 ##' @param width width of the interface windows.
 ##' @param height height of the interface windows.
 ##' @param palette a colour palette of 8 colours.
-##' @seealso \code{\link{twilight.interactive}}
+##' @seealso \code{\link{preprocess.light}}
 ##' @return the dataframe of edited twilights, with columns
 ##' \item{\code{Twilight}}{edited times of twilight}
 ##' \item{\code{Rise}}{logical indicating sunrise}
 ##' \item{\code{Start}}{date of first observation in the crepuscular segment}
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @export
-crepuscular.interactive <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
-                                    point.cex=0.5,width=12,height=4,
-                                    palette=default.palette[c(5,2,9,3,4,1,1)]) {
-
-
+crepuscular.edit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
+                             point.cex=0.5,width=12,height=4,
+                             palette=default.palette[c(5,2,9,3,4,1,1)]) {
 
   ## Order twilights
   if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
@@ -638,7 +636,7 @@ crepuscular.interactive <- function(tagdata,twilights,offset=0,extend=6,threshol
 
 ##' Overlay a data when editing an initial path.
 ##'
-##' The \code{path.interactive} function allows the user to specify a
+##' The \code{path.edit} function allows the user to specify a
 ##' function to overlay data on the map to assist is selecting an
 ##' initial path.
 ##'
@@ -649,14 +647,14 @@ crepuscular.interactive <- function(tagdata,twilights,offset=0,extend=6,threshol
 ##' which the residuals are positive.
 ##'
 ##' @title Overlay data for path editing
-##' @param mode the overlay mode requested by \code{path.interactive}
+##' @param mode the overlay mode requested by \code{path.edit}
 ##' @param xlim the horizontal limits of the map
 ##' @param ylim the vertical limits of the map
 ##' @param twilights the full twilight data
 ##' @param index the index of the current twilight
 ##' @param contours the contour levels to display
 ##' @param zenith the solar zenith angle that defines twilight
-##' @seealso \code{\link{twilight.interactive}}
+##' @seealso \code{\link{path.edit}}
 ##' @export
 overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
                                        contours=c(10,20,50),zenith=NULL) {
@@ -745,14 +743,14 @@ overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
 ##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @export
-path.interactive <- function(path,twilights,offset=0,fixed=FALSE,
-                             aspect=1,extend=1,auto.advance=FALSE,
-                             plot.map=NULL,plot.overlay=NULL,
-                             is.invalid=function(path) logical(nrow(path)),
-                             point.cex=0.5,width=12,height=4,
-                             map.width=8,map.height=8,
-                             palette=default.palette[c(5,2,1,12,3,4)],
-                             ...) {
+path.edit <- function(path,twilights,offset=0,fixed=FALSE,
+                      aspect=1,extend=1,auto.advance=FALSE,
+                      plot.map=NULL,plot.overlay=NULL,
+                      is.invalid=function(path) logical(nrow(path)),
+                      point.cex=0.5,width=12,height=4,
+                      map.width=8,map.height=8,
+                      palette=default.palette[c(5,2,1,12,3,4)],
+                      ...) {
 
 
   ## Store original path
@@ -1085,11 +1083,11 @@ path.interactive <- function(path,twilights,offset=0,fixed=FALSE,
 ##' where each row corresponds to a single twilight.
 ##' @importFrom SGAT twilight
 ##' @export
-twilight.interactive <- function(tagdata,threshold,offset=0,lmax=64,
-                                 extend=0,dark.min=0,
-                                 zenith=96,fixed=NULL,
-                                 point.cex=0.8,width=12,height=4,
-                                 palette=default.palette[c(5,2,9,3,4,1,13)]) {
+preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
+                             extend=0,dark.min=0,
+                             zenith=96,fixed=NULL,
+                             point.cex=0.8,width=12,height=4,
+                             palette=default.palette[c(5,2,9,3,4,1,13)]) {
 
   twilights <- NULL
 
