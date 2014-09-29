@@ -647,11 +647,11 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,
 ##' which the residuals are positive.
 ##'
 ##' @title Overlay data for path editing
+##' @param twilights the full twilight data
+##' @param index the index of the current twilight
 ##' @param mode the overlay mode requested by \code{path.edit}
 ##' @param xlim the horizontal limits of the map
 ##' @param ylim the vertical limits of the map
-##' @param twilights the full twilight data
-##' @param index the index of the current twilight
 ##' @param contours the contour levels to display
 ##' @param zenith the solar zenith angle that defines twilight
 ##' @seealso \code{\link{path.edit}}
@@ -666,8 +666,8 @@ overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
   if(mode!=0 && !is.null(zenith)) {
     grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
     grid <- solar.residuals(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
-    contour(grid,add=TRUE,levels=c(0,contours),col=add.alpha(palette[5],0.5))
-    contour(grid,add=TRUE,levels=-contours,col=add.alpha(palette[6],0.5))
+    contour(grid,add=TRUE,levels=c(0,contours),col=add.alpha(default.palette[3],0.5))
+    contour(grid,add=TRUE,levels=-contours,col=add.alpha(default.palette[4],0.5))
   }
 }
 
