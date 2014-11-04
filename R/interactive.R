@@ -182,7 +182,7 @@ ndc.closest <- function(x,y,xs,ys) {
 ndc.tsimage.date <- function(x,y) {
   day <- .POSIXct(grconvertX(x,from="ndc",to="user"),"GMT")
   hour <- grconvertY(y,from="ndc",to="user")
-  .POSIXct(day+(hour-as.hour(day))*60*60,"GMT")
+  .POSIXct(day+(hour%%24-as.hour(day))*60*60,"GMT")
 }
 
 

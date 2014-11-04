@@ -181,7 +181,7 @@ as.hour <- function(tm) {
 ##' @rdname hours
 ##' @export
 hour.offset <-  function(hr,offset=0) {
-  (hr-offset)%%24+offset
+  (hr-offset)%%24+(offset%%24)
 }
 
 
