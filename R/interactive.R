@@ -652,12 +652,15 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,
 ##' @param mode the overlay mode requested by \code{path.edit}
 ##' @param xlim the horizontal limits of the map
 ##' @param ylim the vertical limits of the map
-##' @param contours the contour levels to display
+##' @param twilight.contours the contour levels to display
 ##' @param zenith the solar zenith angle that defines twilight
 ##' @seealso \code{\link{path.edit}}
+##' @importFrom raster raster
+##' @importFrom SGAT solar.residuals.map
 ##' @export
 overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
-                                       contours=c(10,20,50),zenith=NULL) {
+                                       twilight.contours=c(10,20,50),
+                                       zenith=NULL) {
   add.alpha <- function(col,alpha) {
     col <- col2rgb(col)/255
     rgb(red=col[1],green=col[2],blue=col[3],alpha=alpha)
@@ -665,7 +668,7 @@ overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
 
   if(mode!=0 && !is.null(zenith)) {
     grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
-    grid <- solar.residuals(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
+    grid <- solar.residuals.map(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
     contour(grid,add=TRUE,levels=c(0,contours),col=add.alpha(default.palette[3],0.5))
     contour(grid,add=TRUE,levels=-contours,col=add.alpha(default.palette[4],0.5))
   }
@@ -739,17 +742,17 @@ overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
 ##' @param height height of the selection window.
 ##' @param map.width width of the map window.
 ##' @param map.height height of the map window.
-##' @param palette a colour palette of 8 colours.
+##' @param palette a colour palette of 6 colours.
 ##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @export
 path.edit <- function(path,twilights,offset=0,fixed=FALSE,
-                      aspect=1,extend=1,auto.advance=FALSE,
+                      aspect=1,extend=3,auto.advance=FALSE,
                       plot.map=NULL,plot.overlay=NULL,
                       is.invalid=function(path) logical(nrow(path)),
                       point.cex=0.5,width=12,height=4,
                       map.width=8,map.height=8,
-                      palette=default.palette[c(5,2,1,12,3,4)],
+                      palette=default.palette[c(5,2,1,12,12,1)],
                       ...) {
 
 
@@ -800,8 +803,9 @@ path.edit <- function(path,twilights,offset=0,fixed=FALSE,
     col <- palette[ifelse(fixed,4,
                           ifelse(is.na(invalid) | invalid,3,
                                  ifelse(twilights$Rise,1,2)))]
+    cex <- point.cex*ifelse(is.na(invalid) | invalid,2,1)
     image.draw(NULL,twilights,offset=offset,mark=index,
-               points.col=col,point.cex=point.cex)
+               points.col=col,point.cex=cex)
   }
 
   ## Draw light profiles
@@ -824,12 +828,12 @@ path.edit <- function(path,twilights,offset=0,fixed=FALSE,
     if(!is.null(plot.overlay))
       plot.overlay(twilights,index,mode,xlim,ylim,...)
     ## Show full path
-    lines(path[,1],path[,2],col=palette[4])
-    points(path[,1],path[,2],col=palette[4],pch=16,cex=0.4)
+    lines(path[,1],path[,2],col=palette[5])
+    points(path[,1],path[,2],col=palette[5],pch=16,cex=0.4)
     ## Highlight current point
     ks <- max(1,index-extend):min(nrow(path),index+extend)
-    lines(path[ks,1],path[ks,2],col=palette[3])
-    points(path[index,1],path[index,2],col=palette[if(fixed[index]) 4 else 3],pch=16,cex=1)
+    lines(path[ks,1],path[ks,2],col=palette[6])
+    points(path[index,1],path[index,2],col=palette[if(fixed[index]) 4 else 6],pch=16,cex=1)
   }
 
   ## onMouseDown callback for twilights window.
@@ -882,6 +886,7 @@ path.edit <- function(path,twilights,offset=0,fixed=FALSE,
     ## Undo edit - reset to original location
     if(key=="u") {
       path[index,] <<- path0[index,]
+      invalid <<- !fixed & is.invalid(path)
     }
     if(key >= "0" && key <= "9") {
       mode <<- key
@@ -1114,8 +1119,15 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
   date <- vector(3,mode="list")
   lght <- vector(3,mode="list")
   show.obs <- FALSE
-  show.image <- FALSE
+  show.image <- TRUE
 
+
+  gapline <- function(ts,col) {
+    dt <- diff(ts)
+    ks <- which(dt > 36*60*60)
+    if(length(ks) > 0)
+      abline(v=.POSIXct(ts[ks]+dt[ks]/2,"GMT"),lwd=2,col=col)
+  }
 
   ## Set cached values
   cache <- function(k) {
@@ -1147,7 +1159,7 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
   ## Draw the twilights window
   winA.draw <- function() {
     set.device(winA)
-    image.draw(if(stage < 4 || show.image) tagdata,
+    image.draw(if(show.image) tagdata,
                twilights,offset=offset,mark=index,
                points.col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
                lmax=lmax,point.cex=point.cex)
@@ -1160,8 +1172,22 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
     if(stage==1)
       selection.rectangle(Date1,Date2,col=palette[6])
 
+    if(!is.null(DateZ) && (stage==2 || stage==3)) {
+      start <- floorDate(max(DateZ - zoom*24*60*60,minDate))
+      end <- ceilingDate(min(start+2*zoom*24*60*60,maxDate))
+      start <- floorDate(max(end - 2*zoom*24*60*60,minDate))
+      selection.rectangle(start,end,col=palette[6])
+    }
+
+
     if(stage==2 && length(include)>0)
       tsimage.points(seed,offset=offset,pch=16,col=palette[ifelse(include,4,5)])
+
+    if(stage==3) {
+      gapline(sort(as.numeric(twilights$Twilight[twilights$Rise])),col=palette[1])
+      gapline(sort(as.numeric(twilights$Twilight[!twilights$Rise])),col=palette[2])
+    }
+
   }
 
 
@@ -1199,6 +1225,11 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
 
     if(stage==2 && length(include)>0)
       tsimage.points(seed,offset=offset,pch=16,col=palette[ifelse(include,4,5)])
+
+    if(stage==3) {
+      gapline(sort(as.numeric(twilights$Twilight[twilights$Rise])),col=palette[1])
+      gapline(sort(as.numeric(twilights$Twilight[!twilights$Rise])),col=palette[2])
+    }
   }
 
 
@@ -1339,9 +1370,27 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
       if(stage==4) cache(index)
     }
     if(key=="-") {
-      zoom <<- min(zoom+2,24)
+      zoom <<- min(zoom+2,36)
       if(stage==4) cache(index)
     }
+
+    ## Left/Right movement of zoomed image
+    if(stage < 4 && !is.null(DateZ)) {
+      if(key=="Left") {
+        DateZ <<- .POSIXct(DateZ-zoom*24*60*60,"GMT")
+        if(DateZ < minDate) DateZ <<- minDate
+      }
+      if(key=="Right") {
+        DateZ <<- .POSIXct(DateZ+zoom*24*60*60,"GMT")
+        if(DateZ > maxDate) DateZ <<- maxDate
+      }
+    }
+
+    ## i : toggle image display
+    if(stage > 1 && key=="i") {
+      show.image <<- !show.image
+    }
+
 
     if(stage==1) {
       ## Stage 1 keybindings
@@ -1412,9 +1461,13 @@ preprocess.light <- function(tagdata,threshold,offset=0,lmax=64,
         edit.pt <<- NULL
         changed <<- FALSE
       }
-      ## i : toggle image display
-      if(key=="i") {
-        show.image <<- !show.image
+      if(key=="m") {
+        ks <- which((twilights$Twilight <= twilights$Twilight[index]+60*60*60) &
+                      (twilights$Twilight >= twilights$Twilight[index]-60*60*60) &
+                        (twilights$Rise==twilights$Rise[index]))
+        mdn <- median((as.numeric(twilights$Twilight[ks])-
+                         as.numeric(twilights$Twilight[index])+12*60*60)%%(24*60*60)-12*60*60)
+        twilights$Twilight[index] <<- .POSIXct(twilights$Twilight[index]+mdn,"GMT")
       }
       ## x : reset selection
       if(key=="r") {
