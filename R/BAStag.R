@@ -285,7 +285,7 @@ tsimage.lines <- function(date,offset,...) {
 tsimage.ribbon <- function(date1,date2,offset,...) {
   hour1 <- hour.offset(as.hour(date1),offset)
   hour2 <- hour.offset(as.hour(date2),offset)
-  hour2 <- ifelse(hour1 < hour2,hour2,hour2+24)
+  hour2 <- ifelse(hour1 > hour2,hour2+24,hour2)
   xs <- c(date1,rev(date2))
   ys <- c(hour1,rev(hour2))
   polygon(xs,ys-24,...)
