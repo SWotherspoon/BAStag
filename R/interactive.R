@@ -656,7 +656,7 @@ crepuscular.edit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,
 ##' @param zenith the solar zenith angle that defines twilight
 ##' @seealso \code{\link{path.edit}}
 ##' @importFrom raster raster
-##' @importFrom SGAT solar.residuals.map
+##' @importFrom SGAT twilight.residuals.map
 ##' @export
 overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
                                        twilight.contours=c(10,20,50),
@@ -668,9 +668,9 @@ overlay.twilight.residuals <- function(twilights,index,mode,xlim,ylim,
 
   if(mode!=0 && !is.null(zenith)) {
     grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
-    grid <- solar.residuals.map(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
-    contour(grid,add=TRUE,levels=c(0,contours),col=add.alpha(default.palette[3],0.5))
-    contour(grid,add=TRUE,levels=-contours,col=add.alpha(default.palette[4],0.5))
+    grid <- twilight.residuals.map(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
+    contour(grid,add=TRUE,levels=c(0,twilight.contours),col=add.alpha(default.palette[3],0.5))
+    contour(grid,add=TRUE,levels=-twilight.contours,col=add.alpha(default.palette[4],0.5))
   }
 }
 
