@@ -277,7 +277,11 @@ tsimage.points <- function(date,offset,...) {
 ##' @rdname tsimage.plot
 ##' @export
 tsimage.lines <- function(date,offset,...) {
-  lines(date,hour.offset(as.hour(date),offset%%24),...)
+  hour <- hour.offset(as.hour(date),offset)
+  hour <- hour[1]+(diff(hour)+12)%%24-12
+  lines(date,hour-24,...)
+  lines(date,hour+24,...)
+  lines(date,hour,...)
 }
 
 ##' @rdname tsimage.plot
