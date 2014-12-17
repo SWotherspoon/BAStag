@@ -278,7 +278,7 @@ tsimage.points <- function(date,offset,...) {
 ##' @export
 tsimage.lines <- function(date,offset,...) {
   hour <- hour.offset(as.hour(date),offset)
-  hour <- hour[1]+(diff(hour)+12)%%24-12
+  hour <- cumsum(c(hour[1],(diff(hour)+12)%%24-12))
   lines(date,hour-24,...)
   lines(date,hour+24,...)
   lines(date,hour,...)
