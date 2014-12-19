@@ -215,26 +215,37 @@ hour.offset <-  function(hr,offset=0) {
 ##' @export
 tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",...) {
 
-  ## Estimate sampling interval rounded to nearest minute
-  dt <- 60*round(median(diff(as.numeric(date)))/60)
-  ## Calculate number of rows m, number of columns n, and number of
-  ## pixels to pad at front
+  ## Reasonable resampling intervals (secs)
+  dts <- c(5, 10, 15, 20, 30, 60, 90, 120, 180, 240,
+           300, 360, 400, 480, 540, 600, 720, 900, 960, 1200)
+
+  ## Estimate resampling interval
+  dt <- mean(diff(as.numeric(date)))
+  dt <- dts[which.min(abs(dt-dts))]
+
+  ## Get range to resample into
+  tmin <- .POSIXct(as.POSIXct(as.Date(date[1]))+offset*60*60,"GMT")
+  if(as.numeric(tmin) > as.numeric(date[1])) tmin <- tmin-24*60*60
+  tmax <- .POSIXct(as.POSIXct(as.Date(date[length(date)]))+offset*60*60,"GMT")
+  if(as.numeric(tmax) < as.numeric(date[length(date)])) tmax <- tmax+24*60*60
+
+  ## Resample data
+  y <- approx(as.numeric(date),y,seq(as.numeric(tmin)+dt/2,as.numeric(tmax)-dt/2,dt))$y
+  ## Restructure as mxn matrix
   m <- 24*60*60/dt
-  pad <- floor(((as.hour(date[1])-offset)%%24)*60*60/dt)
-  n <- ceiling((length(y)+pad)/m)
-  ## Hour of each row (strictly increasing)
-  hour <- as.hour(seq(date[1]-pad*dt,by=dt,length=m))
-  hour <- hour[1]+cumsum(c(0,diff(hour)%%24))
-  ## Date of first pixel in each column.
-  day <- seq(date[1]-pad*dt,by=m*dt,length=n+1)
-  y <- matrix(c(rep(NA,pad),y,rep(NA,m*n-pad-length(y))),m,n)
+  n <- length(y)/m
+  y <- matrix(y,m,n)
+
   ## Show as image, with hours wrapped to [0,24].
+  hour <- seq(offset,offset+24,length=m+1)
+  day <- seq(tmin,tmax,length=n+1)
   image(as.numeric(day),hour,t(y),axes=FALSE,xlab=xlab,ylab=ylab,...)
   axis.POSIXct(1,day)
   axis(2,at=seq(0,48,by=4),labels=seq(0,48,by=4)%%24)
   box()
-  invisible(list(date=day,hour=hour,offset=hour[1]-dt/2))
+  invisible(list(date=day,hour=hour,offset=offset))
 }
+
 
 ##' @rdname tsimage
 ##' @export
