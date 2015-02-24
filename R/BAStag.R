@@ -204,6 +204,7 @@ hour.offset <-  function(hr,offset=0) {
 ##' @param offset the starting hour for the vertical axis.
 ##' @param xlab the x axis label.
 ##' @param ylab the y axis label.
+##' @param xaxt a character that specifies the x axis type (see \code{par}).
 ##' @param ... additional arguments to be passed to \code{image}.
 ##' @param im the axes coordinates returned by \code{tsimage}.
 ##' @param n the number of points to select.
