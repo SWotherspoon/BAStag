@@ -1,6 +1,6 @@
 Package: BAStag
 Type: Package
-Title: Basic data processing for light based geolocation archival tags.
+Title: Basic data processing for light based geolocation archival tags
 Version: 0.1-3
 Date: 2013-08-01
 Author: Simon Wotherspoon, Michael Sumner and Simeon Lisovski
