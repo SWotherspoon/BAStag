@@ -161,7 +161,7 @@ readTem2 <- function(file,d.lig=NULL,skip=0) {
 ##'
 ##' Given a vector of POSIXct dates, \code{as.hour} extracts the time
 ##' of day component of the date and returns it as decimal hours.
-##' Given a vector of decimal hours, \code{hour.offset} recodes the
+##' Given a vector of decimal hours, \code{hourOffset} recodes the
 ##' decimal hour into a new 24 hour interval.
 ##' @title Hour Manipulation
 ##' @rdname hours
@@ -171,7 +171,7 @@ readTem2 <- function(file,d.lig=NULL,skip=0) {
 ##' @return Return a decimal hour.
 ##' @examples
 ##' as.hour(as.POSIXct("2005-11-12 19:58:00"))
-##' hour.offset(1:10,5)
+##' hourOffset(1:10,5)
 ##' @export
 as.hour <- function(tm) {
   (as.numeric(tm)-as.numeric(as.POSIXct(as.Date(tm))))/3600
@@ -180,7 +180,7 @@ as.hour <- function(tm) {
 
 ##' @rdname hours
 ##' @export
-hour.offset <-  function(hr,offset=0) {
+hourOffset <-  function(hr,offset=0) {
   (hr-offset)%%24+(offset%%24)
 }
 
@@ -284,19 +284,19 @@ tsimageLocator <- function(im,n=512) {
 ##' \code{points} or \code{lines}.
 ##' @export
 tsimagePlot <- function(date,offset,xlab="Date",ylab="Hour",...) {
-  plot(date,hour.offset(as.hour(date),offset%%24),xlab=xlab,ylab=ylab,...)
+  plot(date,hourOffset(as.hour(date),offset%%24),xlab=xlab,ylab=ylab,...)
 }
 
 ##' @rdname tsimagePlot
 ##' @export
 tsimagePoints <- function(date,offset,...) {
-  points(date,hour.offset(as.hour(date),offset%%24),...)
+  points(date,hourOffset(as.hour(date),offset%%24),...)
 }
 
 ##' @rdname tsimagePlot
 ##' @export
 tsimageLines <- function(date,offset,...) {
-  hour <- hour.offset(as.hour(date),offset)
+  hour <- hourOffset(as.hour(date),offset)
   hour <- cumsum(c(hour[1],(diff(hour)+12)%%24-12))
   lines(date,hour-24,...)
   lines(date,hour+24,...)
@@ -306,8 +306,8 @@ tsimageLines <- function(date,offset,...) {
 ##' @rdname tsimagePlot
 ##' @export
 tsimageRibbon <- function(date1,date2,offset,...) {
-  hour1 <- hour.offset(as.hour(date1),offset)
-  hour2 <- hour.offset(as.hour(date2),offset)
+  hour1 <- hourOffset(as.hour(date1),offset)
+  hour2 <- hourOffset(as.hour(date2),offset)
   hour2 <- ifelse(hour1 > hour2,hour2+24,hour2)
   xs <- c(date1,rev(date2))
   ys <- c(hour1,rev(hour2))

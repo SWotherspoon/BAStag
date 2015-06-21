@@ -1,6 +1,6 @@
-default.palette <- c(red="#E41A1C", blue="#377EB8", green="#4DAF4A", violet="#984EA3",
-                     orange="#FF7F00", yellow="#FFFF33", brown="#A65628", pink="#F781BF",
-                     black="#000000", grey3="#333333", grey6="#666666", grey9="#999999", greyC="#CCCCCC")
+defaultPalette <- c(red="#E41A1C", blue="#377EB8", green="#4DAF4A", violet="#984EA3",
+                    orange="#FF7F00", yellow="#FFFF33", brown="#A65628", pink="#F781BF",
+                    black="#000000", grey3="#333333", grey6="#666666", grey9="#999999", greyC="#CCCCCC")
 
 
 
@@ -121,8 +121,8 @@ profileInit <- function(date,light,lmax=64,xlab="",main="") {
 
 ##' @rdname profileInit
 profileOverlay <- function(date,light,threshold=NULL,point=FALSE,
-                            profile.col=default.palette[c(9,5,2)],
-                            threshold.col=default.palette[1],
+                            profile.col=defaultPalette[c(9,5,2)],
+                            threshold.col=defaultPalette[1],
                             point.cex=0.6) {
 
   ## Overlay with light threshold
@@ -219,7 +219,7 @@ ndcTsimageDate <- function(x,y) {
 ##' @export
 selectData <- function(date,r,deleted=NULL,extend=48,
                         xlab="Date",ylab="",width=12,height=4,
-                        palette=default.palette[c(2,1)],...) {
+                        palette=defaultPalette[c(2,1)],...) {
 
   if(is.null(deleted)) deleted <- logical(length(date))
   zoom <- 3600*extend
@@ -391,7 +391,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' @export
 crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,zlim=c(0,lmax),
                              point.cex=0.5,width=12,height=4,
-                             palette=default.palette[c(5,2,9,3,4,1,1)]) {
+                             palette=defaultPalette[c(5,2,9,3,4,1,1)]) {
 
   ## Order twilights
   if(is.null(twilights$Marker)) twilights$Marker <- integer(nrow(twilights))
@@ -410,8 +410,8 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   selected <- NULL
   start <- end <- 0
   changed <- FALSE
-  show.obs <- FALSE
-  show.image <- FALSE
+  showobs <- FALSE
+  showimg <- FALSE
 
   ## Set cached values
   cache <- function(k) {
@@ -439,7 +439,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   ## Draw the twilights window
   winADraw <- function() {
     setDevice(winA)
-    imageDraw(if(show.image) tagdata,
+    imageDraw(if(showimg) tagdata,
                twilights,offset=offset,mark=index,
                ribbon.col=palette[1:2],
                zlim=zlim,point.cex=point.cex)
@@ -459,7 +459,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   winBDraw <- function() {
     setDevice(winB)
     ## Overlay with light profiles
-    profileOverlay(date,lght,threshold,show.obs,
+    profileOverlay(date,lght,threshold,showobs,
                     profile.col=palette[3:5],threshold.col=palette[6],
                     point.cex=point.cex)
 
@@ -469,7 +469,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     x <- ifelse(selected,date[[2]],NA)
     y <- ifelse(selected,lght[[2]],NA)
     lines(x,y,col=col)
-    if(show.obs) points(x,y,pch=16,cex=point.cex,col=col)
+    if(showobs) points(x,y,pch=16,cex=point.cex,col=col)
 
     ## Selection rectangle
     x1 <- x2 <- NULL
@@ -519,11 +519,11 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     }
     ## i : toggle display light image
     if(key=="i") {
-      show.image <<- !show.image
+      showimg <<- !showimg
     }
     ## p : toggle display of points in the profile window
     if(key=="p") {
-      show.obs <<- !show.obs
+      showobs <<- !showobs
     }
     ## Left/Right : jump to neighbouring twilight
     if(key=="Left") {
@@ -670,8 +670,8 @@ overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
   if(mode!=0 && !is.null(zenith)) {
     grid <- raster(nrows=30,ncols=30,xmn=xlim[1],xmx=xlim[2],ymn=ylim[1],ymx=ylim[2])
     grid <- twilightResidualsMap(twilights$Twilight[index],twilights$Rise[index],grid,zenith=zenith)
-    contour(grid,add=TRUE,levels=c(0,twilight.contours),col=addAlpha(default.palette[3],0.5))
-    contour(grid,add=TRUE,levels=-twilight.contours,col=addAlpha(default.palette[4],0.5))
+    contour(grid,add=TRUE,levels=c(0,twilight.contours),col=addAlpha(defaultPalette[3],0.5))
+    contour(grid,add=TRUE,levels=-twilight.contours,col=addAlpha(defaultPalette[4],0.5))
   }
 }
 
@@ -753,7 +753,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
                       is.invalid=function(path) logical(nrow(path)),
                       point.cex=0.5,width=12,height=4,
                       map.width=8,map.height=8,
-                      palette=default.palette[c(5,2,1,12,12,1)],
+                      palette=defaultPalette[c(5,2,1,12,12,1)],
                       ...) {
 
 
@@ -1094,7 +1094,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                              extend=0,dark.min=0,
                              zenith=96,fixed=NULL,
                              point.cex=0.8,width=12,height=4,
-                             palette=default.palette[c(5,2,9,3,4,1,13)]) {
+                             palette=defaultPalette[c(5,2,9,3,4,1,13)]) {
 
   twilights <- NULL
 
@@ -1115,13 +1115,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Cached data subsets
   stage <- 1
   index <- NULL
-  edit.pt <- NULL
+  editpt <- NULL
   changed <- FALSE
   twls <- NULL
   date <- vector(3,mode="list")
   lght <- vector(3,mode="list")
-  show.obs <- FALSE
-  show.image <- TRUE
+  showobs <- FALSE
+  showimg <- TRUE
 
 
   gapline <- function(ts,col) {
@@ -1134,7 +1134,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Set cached values
   cache <- function(k) {
     index <<- k
-    edit.pt <<- NULL
+    editpt <<- NULL
     changed <<- FALSE
     ## Get twilight times
     twl <- twilights$Twilight[index]
@@ -1161,7 +1161,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Draw the twilights window
   winADraw <- function() {
     setDevice(winA)
-    imageDraw(if(show.image) tagdata,
+    imageDraw(if(showimg) tagdata,
                twilights,offset=offset,mark=index,
                points.col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
                zlim=zlim,point.cex=point.cex)
@@ -1214,12 +1214,12 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                    xlab=if(marker>0) paste("Marker: ",marker) else "",
                    main=as.character(twilights$Twilight[index]))
       ## Overlay with light profiles
-      profileOverlay(date,lght,threshold,show.obs,
+      profileOverlay(date,lght,threshold,showobs,
                       profile.col=palette[3:5],threshold.col=palette[6],
                       point.cex=point.cex)
       abline(v=twls,col=palette[7])
       abline(v=twilights$Twilight[index],col=if(!twilights$Deleted[index]) palette[6] else palette[7])
-      if(changed) points(edit.pt[1],edit.pt[2],pch=16,col=palette[6])
+      if(changed) points(editpt[1],editpt[2],pch=16,col=palette[6])
     }
 
     if(stage==1)
@@ -1339,7 +1339,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
         ## Button 1 -> record location
         if(b==1) {
           changed <<- TRUE
-          edit.pt <<- c(grconvertX(x,from="ndc",to="user"),
+          editpt <<- c(grconvertX(x,from="ndc",to="user"),
                         grconvertY(y,from="ndc",to="user"))
         }
         ## Button 2 -> toggle deletion
@@ -1390,7 +1390,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
 
     ## i : toggle image display
     if(stage > 1 && key=="i") {
-      show.image <<- !show.image
+      showimg <<- !showimg
     }
 
 
@@ -1459,8 +1459,8 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       ## Stage 4 keybindings
       ## a : accept changes
       if(key=="a") {
-        twilights$Twilight[index] <<- .POSIXct(edit.pt[1],"GMT")
-        edit.pt <<- NULL
+        twilights$Twilight[index] <<- .POSIXct(editpt[1],"GMT")
+        editpt <<- NULL
         changed <<- FALSE
       }
       if(key=="m") {
@@ -1481,7 +1481,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       }
       ## p : toggle display of points in the profile window
       if(key=="p") {
-        show.obs <<- !show.obs
+        showobs <<- !showobs
       }
       ## u : undo edits
       if(key=="u") {
