@@ -55,18 +55,18 @@ mouseButton <- function(buttons) {
 ##' @param mark twilights to mark with a cross
 ##' @param points.col colours of twilight points
 ##' @param ribbon.col colours of twilight ribbons
-##' @param lmax the maximum light level to plot.
+##' @param zlim the range of light levels to plot.
 ##' @param point.cex expansion factor for plot points.
 imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
                        mark=NULL,points.col=NULL,ribbon.col=NULL,
-                       lmax=64,point.cex=0.6) {
+                       zlim=c(0,64),point.cex=0.6) {
 
   ## Plot background image
   if(!is.null(tagdata)) {
     if(!is.null(xlim))
-      lightImage(tagdata,offset=offset,lmax=lmax,xlim=xlim)
+      lightImage(tagdata,offset=offset,zlim=zlim,xlim=xlim)
     else
-      lightImage(tagdata,offset=offset,lmax=lmax)
+      lightImage(tagdata,offset=offset,zlim=zlim)
   }
 
   ## If there is twilight data
@@ -377,6 +377,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' which the light profile should be plotted.
 ##' @param threshold the light threshold that defines twilight.
 ##' @param lmax the maximum light level to plot.
+##' @param zlim the range of light levels to plot in images.
 ##' @param point.cex expansion factor for plot points.
 ##' @param width width of the interface windows.
 ##' @param height height of the interface windows.
@@ -388,7 +389,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' \item{\code{Start}}{date of first observation in the crepuscular segment}
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @export
-crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,
+crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,zlim=c(0,lmax),
                              point.cex=0.5,width=12,height=4,
                              palette=default.palette[c(5,2,9,3,4,1,1)]) {
 
@@ -441,7 +442,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     imageDraw(if(show.image) tagdata,
                twilights,offset=offset,mark=index,
                ribbon.col=palette[1:2],
-               lmax=lmax,point.cex=point.cex)
+               zlim=zlim,point.cex=point.cex)
   }
 
 
@@ -1066,6 +1067,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' @param threshold the light threshold that defines twilight.
 ##' @param offset the starting hour for the vertical axes.
 ##' @param lmax the maximum light level to plot.
+##' @param zlim the range of light levels to plot in images.
 ##' @param extend a time in minutes. The function seeks periods of
 ##' darkness that differ from one another by 24 hours plus or minus
 ##' this interval.
@@ -1088,7 +1090,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' where each row corresponds to a single twilight.
 ##' @importFrom SGAT twilight
 ##' @export
-preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,
+preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                              extend=0,dark.min=0,
                              zenith=96,fixed=NULL,
                              point.cex=0.8,width=12,height=4,
@@ -1162,7 +1164,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,
     imageDraw(if(show.image) tagdata,
                twilights,offset=offset,mark=index,
                points.col=palette[ifelse(twilights$Deleted,7,ifelse(twilights$Rise,1,2))],
-               lmax=lmax,point.cex=point.cex)
+               zlim=zlim,point.cex=point.cex)
     title(main=switch(stage,
             "Select subset",
             "Find twilights",
@@ -1203,7 +1205,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,
       }
       imageDraw(tagdata,twilights,offset=offset,
                  points.col=palette[ifelse(twilights$Rise,1,2)],
-                 lmax=lmax,xlim=xlim)
+                 zlim=zlim,xlim=xlim)
       title(main=as.character(DateZ))
     } else {
       ## Plot light profiles

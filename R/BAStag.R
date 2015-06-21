@@ -187,9 +187,13 @@ hour.offset <-  function(hr,offset=0) {
 
 ##' Display time series data as an image.
 ##'
-##' The \code{tsimage} function divides a regular sequence of samples
-##' into 24 hour periods, packs these into the columns of a matrix and
-##' displays the result as an image.
+##' The \code{tsimage} function divides a sequence of samples into 24
+##' hour periods, packs these into the columns of a matrix and
+##' displays the result as an image.  The data are resampled to ensure
+##' the time interval between samples is regular and evenly divides
+##' the 24 hour period. The time interval to which the data are
+##' resampled is selected automatically, or can be specified with the
+##' \code{dt} argument.
 ##'
 ##' The \code{tsimageLocator} function allows the user to select
 ##' pixels with the mouse pointer in the style of \code{locator}, and
@@ -202,6 +206,7 @@ hour.offset <-  function(hr,offset=0) {
 ##' @param date the sequence of sample times as POSIXct.
 ##' @param y the sequence of responses.
 ##' @param offset the starting hour for the vertical axis.
+##' @param dt the time interval to which the data are resampled (secs).
 ##' @param xlab the x axis label.
 ##' @param ylab the y axis label.
 ##' @param xaxt a character that specifies the x axis type (see \code{par}).
@@ -214,15 +219,17 @@ hour.offset <-  function(hr,offset=0) {
 ##' \code{tsimageLocator} returns the times corresponding to the
 ##' selected pixels.
 ##' @export
-tsimage <- function(date,y,offset=0,xlab="Date",ylab="Hour",xaxt=par("xaxt"),...) {
+tsimage <- function(date,y,offset=0,dt=NA,xlab="Date",ylab="Hour",xaxt=par("xaxt"),...) {
 
   ## Reasonable resampling intervals (secs)
   dts <- c(5, 10, 15, 20, 30, 60, 90, 120, 180, 240,
            300, 360, 400, 480, 540, 600, 720, 900, 960, 1200)
 
-  ## Estimate resampling interval
-  dt <- mean(diff(as.numeric(date)))
-  dt <- dts[which.min(abs(dt-dts))]
+  if(is.na(dt)) {
+    ## Estimate resampling interval
+    dt <- mean(diff(as.numeric(date)))
+    dt <- dts[which.min(abs(dt-dts))]
+  }
 
   ## Get range to resample into
   tmin <- .POSIXct(as.POSIXct(as.Date(date[1]))+offset*60*60,"GMT")
@@ -323,17 +330,22 @@ tsimageRibbon <- function(date1,date2,offset,...) {
 ##' \code{Light} that are the sequence of sample times (as POSIXct)
 ##' and light levels recorded by the tag.
 ##' @param offset the offset for the vertical axis in hours.
-##' @param lmax the maximum light level.
+##' @param zlim the range of light levels to plot.
+##' @param dt the time interval to which the data are resampled (secs).
 ##' @param xlab the x axis label.
 ##' @param ylab the y axis label.
-##' @param ...  additional arguments to pass to image.
+##' @param col the colour palette
+##' @param ... additional arguments to pass to image.
 ##' @return Returns the date and hour coordinates of the image grid.
 ##' @export
-lightImage <- function(tagdata,offset=0,lmax=64,xlab="Date",ylab="Hour",...) {
+lightImage <- function(tagdata,offset=0,zlim=c(0,64),dt=NA,
+                       xlab="Date",ylab="Hour",col=grey(seq(0,1,length=256)),...) {
 
-  tsimage(tagdata$Date,tagdata$Light,offset,
-          zlim=c(0,lmax),col=grey(seq(0,1,length=256)),
-          xlab=xlab,ylab=ylab,...)
+  if(is.na(zlim[1])) zlim[1] <- min(tagdata$Light,na.rm=T)
+  if(is.na(zlim[2])) zlim[2] <- max(tagdata$Light,na.rm=T)
+
+  tsimage(tagdata$Date,pmax(zlim[1],pmin(zlim[2],tagdata$Light)),
+          offset=offset,dt=dt,zlim=zlim,col=col,xlab=xlab,ylab=ylab,...)
 }
 
 
