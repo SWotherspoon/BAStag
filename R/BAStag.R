@@ -498,7 +498,7 @@ findCrepuscular <- function(tagdata,twilights,
   twilight <- twilights$Twilight
   rise <- twilights$Rise
   start <- twilight
-  end <-twilight
+  end <- twilight
   ks <- findInterval(twilight,date)
 
   ## Loop over twilights
@@ -511,7 +511,7 @@ findCrepuscular <- function(tagdata,twilights,
       ## Search backward to midnight
       k <- ks[i]+1
       ls <- light[date <= date[k] & date >= date[k]-extend.dark*60*60]
-      rs <- rev(runlength(ls==0))
+      rs <- rev(runlength(ls<=min.threshold))
       start[i] <- date[k+1-min(which(rs>=min(max(rs),4)))]
     } else {
       ## Search backward to noon
@@ -521,15 +521,15 @@ findCrepuscular <- function(tagdata,twilights,
       ## Search forward to midnight
       k <- ks[i]
       ls <- light[date >= date[k] & date <= date[k]+extend.dark*60*60]
-      rs <- rev(runlength(rev(ls)==0))
+      rs <- rev(runlength(rev(ls)<=min.threshold))
       end[i] <- date[k-1+min(which(rs>=min(max(rs),4)))]
     }
   }
 
-  data.frame(Twilight=twilight,
-             Rise=rise,
-             Start=start,
-             End=end)
+  ## Return
+  cbind(twilights,
+        Start=start,
+        End=end)
 }
 
 

@@ -73,7 +73,7 @@ imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
   if(!is.null(twilights)) {
 
     day <- twilights$Twilight
-    hour <- hour.offset(as.hour(twilights$Twilight),offset)
+    hour <- hourOffset(as.hour(twilights$Twilight),offset)
 
     ## Initialize plot axes
     if(is.null(tagdata)) plot(day,hour,type="n",xlab="Date",ylab="Hour",ylim=c(offset,offset+24))
@@ -109,7 +109,8 @@ imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
 ##' @param xlab the x axis label.
 ##' @param main the main title.
 ##' @param threshold threshold levels to display
-##' @param point show individual observations as points
+##' @param lag show profiles from neighbouring days
+##' @param point show individual observations as points?
 ##' @param point.cex expansion factor for plot points.
 ##' @param profile.col the colours of the three light profiles.
 ##' @param threshold.col the colour of the threshold markers.
@@ -120,7 +121,7 @@ profileInit <- function(date,light,lmax=64,xlab="",main="") {
 }
 
 ##' @rdname profileInit
-profileOverlay <- function(date,light,threshold=NULL,point=FALSE,
+profileOverlay <- function(date,light,threshold=NULL,point=FALSE,lag=TRUE,
                             profile.col=defaultPalette[c(9,5,2)],
                             threshold.col=defaultPalette[1],
                             point.cex=0.6) {
@@ -128,8 +129,10 @@ profileOverlay <- function(date,light,threshold=NULL,point=FALSE,
   ## Overlay with light threshold
   if(!is.null(threshold)) abline(h=threshold,col=threshold.col)
   ## Overlay the light profile for the current and surrounding days
-  lines(date[[1]]+86400,light[[1]],col=profile.col[2])
-  lines(date[[3]]-86400,light[[3]],col=profile.col[3])
+  if(lag) {
+    lines(date[[1]]+86400,light[[1]],col=profile.col[2])
+    lines(date[[3]]-86400,light[[3]],col=profile.col[3])
+  }
   lines(date[[2]],light[[2]],col=profile.col[1])
   ## Overlay observations.
   if(point) points(date[[2]],light[[2]],col=profile.col[1],pch=16,cex=point.cex)
@@ -360,6 +363,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' 'r' \tab Resets the selection \cr
 ##' 'i' \tab Toggles the display of the light image \cr
 ##' 'p' \tab Toggles the display of individual points \cr
+##' 'l' \tab Toggles the display of surrounding profiles \cr
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' 'Left arrow' \tab Jump to previous twilight \cr
 ##' 'Right arrow' \tab Jump to next twilight \cr
@@ -399,7 +403,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
                          c("Twilight","Rise","Start","End","Marker")]
   ## Extract date and hour of twilight
   day <- twilights$Twilight
-  hour <- hour.offset(as.hour(twilights$Twilight),offset)
+  hour <- hourOffset(as.hour(twilights$Twilight),offset)
 
   ## Cached data subsets
   index <- 1
@@ -412,6 +416,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   changed <- FALSE
   showobs <- FALSE
   showimg <- FALSE
+  showlag <- TRUE
 
   ## Set cached values
   cache <- function(k) {
@@ -459,7 +464,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   winBDraw <- function() {
     setDevice(winB)
     ## Overlay with light profiles
-    profileOverlay(date,lght,threshold,showobs,
+    profileOverlay(date,lght,threshold,showobs,showlag,
                     profile.col=palette[3:5],threshold.col=palette[6],
                     point.cex=point.cex)
 
@@ -524,6 +529,10 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
     ## p : toggle display of points in the profile window
     if(key=="p") {
       showobs <<- !showobs
+    }
+    ## l : toggle display of lagged twilights in the profile window
+    if(key=="l") {
+      showlag <<- !showlag
     }
     ## Left/Right : jump to neighbouring twilight
     if(key=="Left") {
@@ -763,7 +772,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
   twilights <- twilights[order(twilights$Twilight),]
   ## Extract date and hour of twilight
   day <- twilights$Twilight
-  hour <- hour.offset(as.hour(twilights$Twilight),offset)
+  hour <- hourOffset(as.hour(twilights$Twilight),offset)
   ## Set fixed points
   fixed <- rep(fixed,length.out=nrow(path))
   invalid <- !fixed & is.invalid(path)
@@ -1052,6 +1061,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' 'd' \tab Toggle deletion of this twilight \cr
 ##' 'i' \tab Toggles the display of the light image \cr
 ##' 'p' \tab Toggles the display of individual points \cr
+##' 'p' \tab Toggles the display of surrounding profiles \cr
 ##' 'r' \tab Resets the selection \cr
 ##' 'u' \tab Revert changes to this twilight \cr
 ##' '+'/'-' \tab Zoom in or out \cr
@@ -1122,6 +1132,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   lght <- vector(3,mode="list")
   showobs <- FALSE
   showimg <- TRUE
+  showlag <- TRUE
 
 
   gapline <- function(ts,col) {
@@ -1214,7 +1225,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                    xlab=if(marker>0) paste("Marker: ",marker) else "",
                    main=as.character(twilights$Twilight[index]))
       ## Overlay with light profiles
-      profileOverlay(date,lght,threshold,showobs,
+      profileOverlay(date,lght,threshold,showobs,showlag,
                       profile.col=palette[3:5],threshold.col=palette[6],
                       point.cex=point.cex)
       abline(v=twls,col=palette[7])
@@ -1266,7 +1277,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
         ## Determine selected profile.
         if(b==1) {
           day <- twilights$Twilight
-          hour <- hour.offset(as.hour(twilights$Twilight),offset)
+          hour <- hourOffset(as.hour(twilights$Twilight),offset)
           k <- (ndcClosest(x,y,c(day,day,day),c(hour-24,hour,hour+24))-1)%%length(day)+1
           ## Redraw
           cache(k)
@@ -1482,6 +1493,10 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       ## p : toggle display of points in the profile window
       if(key=="p") {
         showobs <<- !showobs
+      }
+      ## l : toggle display of lagged twilights in the profile window
+      if(key=="l") {
+        showlag <<- !showlag
       }
       ## u : undo edits
       if(key=="u") {
