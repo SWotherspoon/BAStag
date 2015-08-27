@@ -371,8 +371,11 @@ tsimagePoints <- function(date,offset,...) {
 ##' @rdname tsimagePlot
 ##' @export
 tsimageLines <- function(date,offset,...) {
-  hour <- hourOffset(as.hour(date),offset)
-  hour <- cumsum(c(hour[1],(diff(hour)+12)%%24-12))
+  ## Unfold so that lines do not cross from top to bottom
+  hour <- hourOffset(as.hour(date), offset)
+  hr <- hour[!is.na(hour)]
+  hour[!is.na(hour)] <- cumsum(c(hr[1], (diff(hr) + 12)%%24 - 12))
+  ## Plot 24 hour translations of the unfolded line
   lines(date,hour-24,...)
   lines(date,hour+24,...)
   lines(date,hour,...)
