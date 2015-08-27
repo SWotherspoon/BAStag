@@ -14,7 +14,7 @@ readTem2(file, d.lig = NULL, skip = 0)
 \item{skip}{number of initial lines to skip}
 }
 \value{
-If \code{d.tem2} is passed a "lig" dataframe, it returns that
+If \code{readTem2} is passed a "lig" dataframe, it returns that
 dataframe with the appended column
 \item{\code{Temperature}}{the recorded temperature}
 otherwise it returns a dataframe with columns
