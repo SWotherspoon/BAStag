@@ -14,3 +14,4 @@ Description: Facilities for importing and plotting data recorded by
 NeedsCompilation: no
 ByteCompile: yes
 License: GPL-3
+RoxygenNote: 5.0.1
