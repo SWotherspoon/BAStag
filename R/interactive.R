@@ -115,9 +115,13 @@ imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
 ##' @param profile.col the colours of the three light profiles.
 ##' @param threshold.col the colour of the threshold markers.
 profileInit <- function(date,light,lmax=64,xlab="",main="") {
-  ## Draw axes for light profiles
-  plot(date[[2]],light[[2]],ylim=c(0,lmax),xlab=xlab,ylab="Light",type="n",xaxt="n",main=main)
-  axis.POSIXct(1,x=date[[2]],format="%H:%M")
+  if(length(date[[2]]) > 0) {
+    ## Draw axes for light profiles
+    plot(date[[2]],light[[2]],ylim=c(0,lmax),xlab=xlab,ylab="Light",type="n",xaxt="n",main=main)
+    axis.POSIXct(1,x=date[[2]],format="%H:%M")
+  } else {
+    plot.new()
+  }
 }
 
 ##' @rdname profileInit
@@ -1245,12 +1249,12 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       ## Plot light profiles
       marker <- twilights$Marker[index]
       profileInit(date,lght,lmax=lmax,
-                   xlab=if(marker>0) paste("Marker: ",marker) else "",
-                   main=as.character(twilights$Twilight[index]))
+                  xlab=if(marker>0) paste("Marker: ",marker) else "",
+                  main=as.character(twilights$Twilight[index]))
       ## Overlay with light profiles
       profileOverlay(date,lght,threshold,showobs,showlag,
-                      profile.col=palette[3:5],threshold.col=palette[6],
-                      point.cex=point.cex)
+                     profile.col=palette[3:5],threshold.col=palette[6],
+                     point.cex=point.cex)
       abline(v=twls,col=palette[7])
       abline(v=twilights$Twilight[index],col=if(!twilights$Deleted[index]) palette[6] else palette[7])
       if(changed) points(editpt[1],editpt[2],pch=16,col=palette[6])
