@@ -27,6 +27,7 @@ NULL
 ##' \item{\code{Date}}{the date and time of the observation}
 ##' \item{\code{Julian}}{date and time as Julian date}
 ##' \item{\code{Light}}{the recorded light level}
+##' @importFrom utils read.csv
 ##' @export
 readLig <- function(file,skip=0) {
   ## Read csv file and add column names
@@ -70,6 +71,7 @@ readLig <- function(file,skip=0) {
 ##' \item{\code{Julian}}{date and time as Julian date}
 ##' \item{\code{Activity}}{the number of seconds of activity}
 ##' \item{\code{Wet}}{whether the tag was wet or dry}
+##' @importFrom utils read.csv
 ##' @export
 readAct <- function(file,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
@@ -86,6 +88,8 @@ readAct <- function(file,skip=0) {
 }
 
 ##' @rdname readAct
+##' @importFrom utils read.csv
+##' @importFrom stats approx
 ##' @export
 readAct2 <- function(file,d.lig=NULL,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
@@ -129,6 +133,8 @@ readAct2 <- function(file,d.lig=NULL,skip=0) {
 ##' \item{\code{Date}}{the date and time of the observation}
 ##' \item{\code{Julian}}{date and time as Julian date}
 ##' \item{\code{Temperature}}{the recorded temperature.}
+##' @importFrom utils read.csv
+##' @importFrom stats approx
 ##' @export
 readTem2 <- function(file,d.lig=NULL,skip=0) {
   ## Read csv file and add column names.  Must explicitly specify
@@ -144,7 +150,7 @@ readTem2 <- function(file,d.lig=NULL,skip=0) {
   ## Run length decode activity
   if(!is.null(d.lig)) {
     d <- d[d$Valid=="ok",]
-    k<- approx(d.lig$Date,1:nrow(d.lig),d$Date,method="constant",rule=2)$y
+    k <- approx(d.lig$Date,1:nrow(d.lig),d$Date,method="constant",rule=2)$y
     d.lig$Temp <- rep(NA,nrow(d.lig))
     d.lig$Temp[k] <- d$Temp
     d <- d.lig
@@ -168,6 +174,7 @@ readTem2 <- function(file,d.lig=NULL,skip=0) {
 ##' @return Returns a dataframe with columns
 ##' \item{\code{Date}}{the date and time of the observation}
 ##' \item{\code{Light}}{the recorded light level}
+##' @importFrom utils read.table
 ##' @export
 readMTlux <- function(file,skip=20) {
   ## Read csv file and add column names
@@ -207,6 +214,8 @@ readMTlux <- function(file,skip=20) {
 ##' \item{\code{MaxSST}}{the maximum SST}
 ##' \item{\code{SST}}{the mean SST}
 ##' \item{\code{NSST}}{the number of SST samples}
+##' @importFrom utils read.csv
+##' @importFrom stats approx
 ##' @export
 readMTsst <- function(file,d.lux=NULL,skip=20) {
   ## Read csv file and add column names
@@ -218,7 +227,7 @@ readMTsst <- function(file,d.lux=NULL,skip=20) {
   d$Date <- as.POSIXct(strptime(d$Date,"%d/%m/%Y %H:%M:%S",tz="GMT"))
   ## Run length decode activity
   if(!is.null(d.lux)) {
-    k<- approx(d.lux$Date,1:nrow(d.lux),d$Date,method="constant",rule=2)$y
+    k <- approx(d.lux$Date,1:nrow(d.lux),d$Date,method="constant",rule=2)$y
     for(v in c("MinSST","MaxSST","SST")) {
       d.lux[,v] <- rep(NA,nrow(d.lux))
       d.lux[k,v] <- d[,v]
@@ -293,6 +302,8 @@ hourOffset <-  function(hr,offset=0) {
 ##' grid.
 ##' \code{tsimageLocator} returns the times corresponding to the
 ##' selected pixels.
+##' @importFrom stats approx
+##' @importFrom graphics axis axis.POSIXct box image
 ##' @export
 tsimage <- function(date,y,offset=0,dt=NA,xlab="Date",ylab="Hour",xaxt=par("xaxt"),...) {
 
@@ -331,6 +342,7 @@ tsimage <- function(date,y,offset=0,dt=NA,xlab="Date",ylab="Hour",xaxt=par("xaxt
 
 
 ##' @rdname tsimage
+##' @importFrom graphics locator
 ##' @export
 tsimageLocator <- function(im,n=512) {
   ## Force evaluation of im.
@@ -357,18 +369,21 @@ tsimageLocator <- function(im,n=512) {
 ##' @param ylab the label for the y axis.
 ##' @param ... additional arguments parameters to pass to \code{plot},
 ##' \code{points} or \code{lines}.
+##' @importFrom graphics plot
 ##' @export
 tsimagePlot <- function(date,offset,xlab="Date",ylab="Hour",...) {
   plot(date,hourOffset(as.hour(date),offset%%24),xlab=xlab,ylab=ylab,...)
 }
 
 ##' @rdname tsimagePlot
+##' @importFrom graphics points
 ##' @export
 tsimagePoints <- function(date,offset,...) {
   points(date,hourOffset(as.hour(date),offset%%24),...)
 }
 
 ##' @rdname tsimagePlot
+##' @importFrom graphics lines
 ##' @export
 tsimageLines <- function(date,offset,...) {
   ## Unfold so that lines do not cross from top to bottom
@@ -382,6 +397,7 @@ tsimageLines <- function(date,offset,...) {
 }
 
 ##' @rdname tsimagePlot
+##' @importFrom graphics polygon
 ##' @export
 tsimageRibbon <- function(date1,date2,offset,...) {
   hour1 <- hourOffset(as.hour(date1),offset)
@@ -415,6 +431,7 @@ tsimageRibbon <- function(date1,date2,offset,...) {
 ##' @param col the colour palette
 ##' @param ... additional arguments to pass to image.
 ##' @return Returns the date and hour coordinates of the image grid.
+##' @importFrom grDevices grey
 ##' @export
 lightImage <- function(tagdata,offset=0,zlim=c(0,64),dt=NA,
                        xlab="Date",ylab="Hour",col=grey(seq(0,1,length=256)),...) {
@@ -756,6 +773,7 @@ twilightAdjust <- function(twilights,interval,fixed=FALSE) {
 ##' @param col colors for increasing and decreasing zenith angles
 ##' @param ... additional arguments to pass to \code{plot}.
 ##' @importFrom SGAT zenith solar
+##' @importFrom graphics plot
 ##' @export
 thresholdCalibrate <- function(tagdata,lon,lat,max.adjust=TRUE,
                                 col=c("dodgerblue","firebrick"),...) {
@@ -780,6 +798,7 @@ thresholdCalibrate <- function(tagdata,lon,lat,max.adjust=TRUE,
 ##' @param time a vector of POSIXct times.
 ##' @param start new start time as POSIXct.
 ##' @param end new end time as POSIXct.
+##' @importFrom stats approx
 ##' @export
 driftAdjust <- function(time,start,end) {
   n <- length(time)

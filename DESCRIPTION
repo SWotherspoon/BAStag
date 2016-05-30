@@ -6,6 +6,10 @@ Date: 2013-08-01
 Author: Simon Wotherspoon, Michael Sumner and Simeon Lisovski
 Maintainer: Simon Wotherspoon <Simon.Wotherspoon@utas.edu.au>
 Depends:
+    grDevices,
+    graphics,
+    stats,
+    utils,
     SGAT,
     raster
 Description: Facilities for importing and plotting data recorded by

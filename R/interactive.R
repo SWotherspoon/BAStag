@@ -57,6 +57,7 @@ mouseButton <- function(buttons) {
 ##' @param ribbon.col colours of twilight ribbons
 ##' @param zlim the range of light levels to plot.
 ##' @param point.cex expansion factor for plot points.
+##' @importFrom graphics plot points
 imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
                        mark=NULL,points.col=NULL,ribbon.col=NULL,
                        zlim=c(0,64),point.cex=0.6) {
@@ -114,6 +115,7 @@ imageDraw <- function(tagdata=NULL,twilights=NULL,offset=0,xlim=NULL,
 ##' @param point.cex expansion factor for plot points.
 ##' @param profile.col the colours of the three light profiles.
 ##' @param threshold.col the colour of the threshold markers.
+##' @importFrom graphics axis.POSIXct plot plot.new plot.window
 profileInit <- function(date,light,lmax=64,xlab="",main="") {
   if(length(date[[2]]) > 0) {
     ## Draw axes for light profiles
@@ -125,6 +127,7 @@ profileInit <- function(date,light,lmax=64,xlab="",main="") {
 }
 
 ##' @rdname profileInit
+##' @importFrom graphics abline lines points
 profileOverlay <- function(date,light,threshold=NULL,point=FALSE,lag=TRUE,
                             profile.col=defaultPalette[c(9,5,2)],
                             threshold.col=defaultPalette[1],
@@ -154,6 +157,7 @@ profileOverlay <- function(date,light,threshold=NULL,point=FALSE,lag=TRUE,
 ##' @param x2 coordinates of the right boundaries of rectangles
 ##' @param col rectangle colours
 ##' @param add add rectangles to existing rectangles.
+##' @importFrom graphics grconvertX grconvertY rect
 selectionRectangle <- function(x1,x2,col,add=FALSE) {
   ## Determine upper and lower limits
   rx <- grconvertX(c(0,1),from="npc",to="user")
@@ -179,12 +183,14 @@ selectionRectangle <- function(x1,x2,col,add=FALSE) {
 ##' @param xs points user x coordinates
 ##' @param ys points user y coordinates
 ##' @return index of closest point
+##' @importFrom graphics grconvertX grconvertY
 ndcClosest <- function(x,y,xs,ys) {
   xs <- grconvertX(xs,from="user",to="ndc")
   ys <- grconvertY(ys,from="user",to="ndc")
   which.min((x-xs)^2+(y-ys)^2)
 }
 
+##' @importFrom graphics grconvertX grconvertY
 ##' @rdname ndcClosest
 ndcTsimageDate <- function(x,y) {
   day <- .POSIXct(grconvertX(x,from="ndc",to="user"),"GMT")
@@ -223,6 +229,8 @@ ndcTsimageDate <- function(x,y) {
 ##' @param palette a colour palette of 4 colours.
 ##' @param ... additional parameters to pass to plot.
 ##' @return a logical vector that indicates the observations to be deleted.
+##' @importFrom graphics grconvertX grconvertY plot
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 selectData <- function(date,r,deleted=NULL,extend=48,
                         xlab="Date",ylab="",width=12,height=4,
@@ -396,6 +404,8 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' \item{\code{Rise}}{logical indicating sunrise}
 ##' \item{\code{Start}}{date of first observation in the crepuscular segment}
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
+##' @importFrom graphics grconvertX grconvertY lines points
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,zlim=c(0,lmax),
                              point.cex=0.5,width=12,height=4,
@@ -671,6 +681,8 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
 ##' @seealso \code{\link{pathEdit}}
 ##' @importFrom raster raster
 ##' @importFrom SGAT twilightResidualsMap
+##' @importFrom graphics contour
+##' @importFrom grDevices col2rgb
 ##' @export
 overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
                                        twilight.contours=c(10,20,50),
@@ -759,6 +771,8 @@ overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
 ##' @param palette a colour palette of 6 colours.
 ##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
+##' @importFrom graphics grconvertX grconvertY lines par plot.new plot.window points
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
                       aspect=1,extend=3,auto.advance=FALSE,
@@ -1122,6 +1136,9 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' \item{\code{Marker3}}{Marker from stage 3}
 ##' where each row corresponds to a single twilight.
 ##' @importFrom SGAT twilight thresholdPath
+##' @importFrom stats median
+##' @importFrom graphics abline grconvertX grconvertY lines plot.new points title
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                             extend=0,dark.min=0,
@@ -1401,7 +1418,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
         if(b==1) {
           changed <<- TRUE
           editpt <<- c(grconvertX(x,from="ndc",to="user"),
-                        grconvertY(y,from="ndc",to="user"))
+                       grconvertY(y,from="ndc",to="user"))
         }
         ## Button 2 -> toggle deletion
         if(b==2) {
