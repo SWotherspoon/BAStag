@@ -682,7 +682,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
 ##' @importFrom raster raster
 ##' @importFrom SGAT twilightResidualsMap
 ##' @importFrom graphics contour
-##' @importFrom grDevices col2rgb
+##' @importFrom grDevices col2rgb rgb
 ##' @export
 overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
                                        twilight.contours=c(10,20,50),
@@ -772,7 +772,7 @@ overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
 ##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @importFrom graphics grconvertX grconvertY lines par plot.new plot.window points
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
 ##' @export
 pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
                       aspect=1,extend=3,auto.advance=FALSE,
@@ -1138,7 +1138,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' @importFrom SGAT twilight thresholdPath
 ##' @importFrom stats median
 ##' @importFrom graphics abline grconvertX grconvertY lines plot.new points title
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
+##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
 ##' @export
 preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                             extend=0,dark.min=0,
