@@ -230,7 +230,7 @@ ndcTsimageDate <- function(x,y) {
 ##' @param ... additional parameters to pass to plot.
 ##' @return a logical vector that indicates the observations to be deleted.
 ##' @importFrom graphics grconvertX grconvertY plot
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
+##' @importFrom grDevices dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 selectData <- function(date,r,deleted=NULL,extend=48,
                         xlab="Date",ylab="",width=12,height=4,
@@ -248,7 +248,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
 
   ## Draw the selection window
   winADraw <- function() {
@@ -405,7 +405,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
 ##' \item{\code{Start}}{date of first observation in the crepuscular segment}
 ##' \item{\code{End}}{date of last observation in the crepuscular segment}
 ##' @importFrom graphics grconvertX grconvertY lines points
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
+##' @importFrom grDevices dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers
 ##' @export
 crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,lmax=64,zlim=c(0,lmax),
                              point.cex=0.5,width=12,height=4,
@@ -453,7 +453,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
 
   ## Draw the twilights window
   winADraw <- function() {
@@ -772,7 +772,7 @@ overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
 ##' @param ... additional arguments passed to plot.overlay
 ##' @return a two column matrix of (lon,lat) locations.
 ##' @importFrom graphics grconvertX grconvertY lines par plot.new plot.window points
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
+##' @importFrom grDevices dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
 ##' @export
 pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
                       aspect=1,extend=3,auto.advance=FALSE,
@@ -823,7 +823,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
 
   ## Draw the twilights window
   winADraw <- function() {
@@ -1138,7 +1138,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' @importFrom SGAT twilight thresholdPath
 ##' @importFrom stats median
 ##' @importFrom graphics abline grconvertX grconvertY lines plot.new points title
-##' @importFrom grDevices bringToTop dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
+##' @importFrom grDevices dev.cur dev.new dev.off dev.set getGraphicsEvent setGraphicsEventHandlers recordPlot replayPlot
 ##' @export
 preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                             extend=0,dark.min=0,
@@ -1203,7 +1203,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
 
   ## Show vertical lines in gaps (stage 3)
   gapline <- function(ts,col) {
