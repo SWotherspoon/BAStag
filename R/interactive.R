@@ -248,7 +248,7 @@ selectData <- function(date,r,deleted=NULL,extend=48,
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices::bringToTop else setDevice
 
   ## Draw the selection window
   winADraw <- function() {
@@ -453,7 +453,7 @@ crepuscularEdit <- function(tagdata,twilights,offset=0,extend=6,threshold=NULL,l
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices::bringToTop else setDevice
 
   ## Draw the twilights window
   winADraw <- function() {
@@ -823,7 +823,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices::bringToTop else setDevice
 
   ## Draw the twilights window
   winADraw <- function() {
@@ -1203,7 +1203,7 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Select device
   setDevice <- function(dev) if(dev.cur()!=dev) dev.set(dev)
   ## Focus if possible
-  focus <- if(exists("bringToTop",mode="function")) grDevices:::bringToTop else setDevice
+  focus <- if(exists("bringToTop",mode="function")) grDevices::bringToTop else setDevice
 
   ## Show vertical lines in gaps (stage 3)
   gapline <- function(ts,col) {

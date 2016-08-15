@@ -1,21 +1,27 @@
 Package: BAStag
 Type: Package
 Title: Basic data processing for light based geolocation archival tags
-Version: 0.1-3
-Date: 2013-08-01
-Author: Simon Wotherspoon, Michael Sumner and Simeon Lisovski
-Maintainer: Simon Wotherspoon <Simon.Wotherspoon@utas.edu.au>
+Version: 0.1.3
+Date: 2016-08-15
+Authors@R: c(
+    as.person("Simon Wotherspoon <Simon.Wotherspoon@utas.edu.au> [aut,cre]"),
+    as.person("Michael Sumner [aut]"),
+    as.person("Simeon Lisovski [aut]"))
+Description: Facilities for importing and plotting data recorded by
+    light based geolocation archival tags, and in particular detecting
+    times of twilight from the recorded light data.
 Depends:
+    R(>= 3.3.0)
+Imports:
+    SGAT,
     grDevices,
     graphics,
     stats,
     utils,
-    SGAT,
     raster
-Description: Facilities for importing and plotting data recorded by
-    light based geolocation archival tags, and in particular detecting
-    times of twilight from the recorded light data.
-NeedsCompilation: no
-ByteCompile: yes
+Remotes:
+    SWotherspoon/SGAT
 License: GPL-3
+NeedsCompilation: no
+LazyData: TRUE
 RoxygenNote: 5.0.1
