@@ -240,6 +240,36 @@ readMTsst <- function(file,d.lux=NULL,skip=20) {
 }
 
 
+##' Read Temperature data from a Migrate Technologies tag
+##'
+##' The \code{readMTdeg} function reads temperature data from a
+##' Migrate Technologies tag.
+##'
+##' @title Read Temperature Data
+##' @param file the sst file to import.
+##' @param skip number of initial lines to skip
+##' @return Return a dataframe with columns
+##' \item{\code{Date}}{the date and time of the observation}
+##' \item{\code{MinSST}}{the minimum SST}
+##' \item{\code{MaxSST}}{the maximum SST}
+##' \item{\code{SST}}{the mean SST}
+##' \item{\code{Wet}}{the number of wet samples}
+##' \item{\code{Conductivity}}{the condicivity}
+##' @importFrom utils read.csv
+##' @export
+readMTdeg <- function(file,skip=20) {
+  ## Read csv file and add column names
+  d <- read.table(file,header=FALSE,skip=skip,
+                  sep="\t",
+                  col.names=c("Date","MinSST","MaxSST","SST","Wet","Conductivity"),
+                  colClasses=c("character","numeric","numeric","numeric","numeric","numeric"))
+  ## Parse date
+  d$Date <- as.POSIXct(strptime(d$Date,"%d/%m/%Y %H:%M:%S",tz="GMT"))
+  ## Return data frame.
+  d
+}
+
+
 
 ##' Utilities for manipulating hours
 ##'
