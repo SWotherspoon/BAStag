@@ -42,4 +42,3 @@ interval. The \code{twilightData} is similar, but the time
 intervals are defined as a number of hours before and after a
 given sequence of twilight times.
 }
-

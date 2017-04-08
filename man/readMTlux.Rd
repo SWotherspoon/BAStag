@@ -26,4 +26,3 @@ have an extensive header, and it may be necessary to set the
 \code{skip} argument to skip the lines including the two column
 headers.
 }
-

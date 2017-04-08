@@ -53,4 +53,3 @@ function \code{interleave.twilights} takes a dataframe of separate
 sunset and sunrise times and interleaves them to form a sequence
 of twilight times.
 }
-

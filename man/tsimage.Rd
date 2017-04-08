@@ -56,4 +56,3 @@ returns the times corresponding to the selected pixels.
 These functions ignore clock drift and assume the sampling period
 exactly divides 24 hours.
 }
-

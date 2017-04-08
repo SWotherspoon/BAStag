@@ -39,4 +39,3 @@ which the residuals are positive.
 \seealso{
 \code{\link{pathEdit}}
 }
-

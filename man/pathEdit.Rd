@@ -101,4 +101,3 @@ the current path as an argument and returns a logical vector
 indicating which locations along the path are in some way invalid.
 The twilights for these locations will be highlighted.
 }
-

@@ -25,4 +25,3 @@ sampling interval, and this behaviour biases naive estimates of
 the times of sunset.  This function offsets sunset times by the
 sampling interval to correct for this bias.
 }
-

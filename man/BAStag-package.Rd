@@ -13,4 +13,3 @@ recorded light data.
 \author{
 Simon Wotherspoon, Micheal Sumner and Simeon Lisovski.
 }
-

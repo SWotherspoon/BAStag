@@ -51,4 +51,3 @@ points.
 'Left/Right arrow' \tab Jump forward or backward in hte time series \cr
 }
 }
-

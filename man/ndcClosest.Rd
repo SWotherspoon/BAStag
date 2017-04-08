@@ -30,4 +30,3 @@ coordinates (x,y), \code{ndcClosest} returns the index of the
 closest point to (x,y).  Given the ndc coordinates of a pixel in a
 tsimage plot, ndcTsimageDate returns the date of the pixel.
 }
-

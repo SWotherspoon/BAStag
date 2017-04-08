@@ -22,4 +22,3 @@ vector passed to the callbacks used by getGraphicsEvent.  This is
 non-trivial because the windows and MacOS behaviours are subtly
 different.
 }
-

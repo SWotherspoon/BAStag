@@ -20,4 +20,3 @@ Adjust time for clock drift
 Linearly rescale a sequence of dates to a new start and end time
 to correct for clock drift in the tag.
 }
-

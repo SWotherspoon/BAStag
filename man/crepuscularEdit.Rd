@@ -84,4 +84,3 @@ In either window
 \seealso{
 \code{\link{preprocessLight}}
 }
-

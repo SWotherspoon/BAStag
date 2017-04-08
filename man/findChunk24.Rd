@@ -28,4 +28,3 @@ searching for adjacent nights, but is unable to search beyond a
 period of light or dark spaaning greater than 24 hours.  This function
 finds extended periods of light or dark that span more than 24 hours.
 }
-

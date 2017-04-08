@@ -32,4 +32,3 @@ decimal hour into a new 24 hour interval.
 as.hour(as.POSIXct("2005-11-12 19:58:00"))
 hourOffset(1:10,5)
 }
-

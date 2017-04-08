@@ -46,4 +46,3 @@ If \code{readAct2} is passed a dataframe constructed with
 light is recorded and returns a merged dataframe with both light
 and activity data.
 }
-

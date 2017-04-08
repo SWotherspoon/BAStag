@@ -44,4 +44,3 @@ intensity around twilight and returns the dataframe constructed by
 the crepuscular segment. The sugset of data corresponding to these
 segments can be extracted with \code{extractCrepuscular}.
 }
-

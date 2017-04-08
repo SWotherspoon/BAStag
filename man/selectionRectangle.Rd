@@ -24,4 +24,3 @@ of the data that have been selected.  Drawing the rectangle above
 the plot means the selection can be updated without having to
 redraw the main plot.
 }
-

@@ -39,4 +39,3 @@ tagdata is \code{NULL}, no image is drawn.  Twilight points and
 ribbons are only drawn when twilight data is provided and the
 point or ribbon colour specifications are non \code{NULL}.
 }
-

@@ -27,4 +27,3 @@ Read Temperature data from a Migrate Technologies tag
 The \code{readMTdeg} function reads temperature data from a
 Migrate Technologies tag.
 }
-

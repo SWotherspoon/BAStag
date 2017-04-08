@@ -38,4 +38,3 @@ recorded temperatures to the closest recorded light reading and
 returns the merged dataframe with both temperature and activity
 data.
 }
-

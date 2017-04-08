@@ -32,4 +32,3 @@ Given data for a known location, this plots the recorded light
 against the solar zenith angle to allow observed light levels to
 be calibrated to solar zenith angle.
 }
-

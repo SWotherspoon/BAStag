@@ -39,4 +39,3 @@ matrix and displays the result as an image.
 
 This function is essentially a wrapper for \code{tsimage}.
 }
-

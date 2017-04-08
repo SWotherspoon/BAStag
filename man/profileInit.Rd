@@ -40,4 +40,3 @@ Initialize a light profile plot for plotting
 \details{
 Sets up axes for drawing light profile plots.
 }
-

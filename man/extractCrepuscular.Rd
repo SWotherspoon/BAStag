@@ -47,4 +47,3 @@ running maximum in the direction of day is calculated.  Light
 levels that are \code{filter.threshold} units below the running
 maximum are removed.
 }
-
