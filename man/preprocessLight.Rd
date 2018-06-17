@@ -110,6 +110,7 @@ In either window
 \tabular{ll}{
 'q' \tab Quits, returning the dataframe of edited twilights\cr
 'a' \tab Accepts any changes and advances to the next stage \cr
+'b' \tab Returns back to the previous stage \cr
 'u' \tab Removes the most recent search point\cr
 '+'/'-' \tab Zoom in or out \cr
 }
@@ -132,6 +133,7 @@ In either window
 \tabular{ll}{
 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 'a' \tab Accepts any changes and advances to the next stage \cr
+'b' \tab Returns back to the previous stage \cr
 'u' \tab Removes the most recent insertion \cr
 '+'/'-' \tab Zoom in or out \cr
 '0'-'9' \tab Mark the most recent addition \cr
@@ -156,6 +158,7 @@ In either window
 \tabular{ll}{
 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 'a' \tab Accepts the candidate edit \cr
+'b' \tab Returns back to the previous stage \cr
 'd' \tab Toggle deletion of this twilight \cr
 'i' \tab Toggles the display of the light image \cr
 'p' \tab Toggles the display of individual points \cr

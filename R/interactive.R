@@ -1030,6 +1030,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilights\cr
 ##' 'a' \tab Accepts any changes and advances to the next stage \cr
+##' 'b' \tab Returns back to the previous stage \cr
 ##' 'u' \tab Removes the most recent search point\cr
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' }
@@ -1052,6 +1053,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 ##' 'a' \tab Accepts any changes and advances to the next stage \cr
+##' 'b' \tab Returns back to the previous stage \cr
 ##' 'u' \tab Removes the most recent insertion \cr
 ##' '+'/'-' \tab Zoom in or out \cr
 ##' '0'-'9' \tab Mark the most recent addition \cr
@@ -1076,6 +1078,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' \tabular{ll}{
 ##' 'q' \tab Quits, returning the dataframe of edited twilight segments \cr
 ##' 'a' \tab Accepts the candidate edit \cr
+##' 'b' \tab Returns back to the previous stage \cr
 ##' 'd' \tab Toggle deletion of this twilight \cr
 ##' 'i' \tab Toggles the display of the light image \cr
 ##' 'p' \tab Toggles the display of individual points \cr
@@ -1500,6 +1503,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       showimg <<- !showimg
     }
 
+    ## b : go back a stage
+    if(stage > 1 && key=="b") {
+      stage <<- stage-1
+    }
+
+
+
 
     if(stage==1) {
       ## Stage 1 keybindings
@@ -1567,10 +1577,12 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       ## Stage 4 keybindings
       ## a : accept changes
       if(key=="a") {
-        twilights$Twilight[index] <<- .POSIXct(editpt[1],"GMT")
-        if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
-        editpt <<- NULL
-        changed <<- FALSE
+        if(!is.null(editpt)) {
+          twilights$Twilight[index] <<- .POSIXct(editpt[1],"GMT")
+          if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
+          editpt <<- NULL
+          changed <<- FALSE
+        }
       }
       if(key=="m") {
         ks <- which((twilights$Twilight <= twilights$Twilight[index]+60*60*60) &
