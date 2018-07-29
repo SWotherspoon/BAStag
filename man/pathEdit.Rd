@@ -27,7 +27,7 @@ fixed.}
 \item{extend}{the number of locations before and after the current
 location to highlight.}
 
-\item{auto.advance}{advance to next point afet edit.}
+\item{auto.advance}{advance to next point after edit.}
 
 \item{plotMap}{A function to plot the background map.}
 
