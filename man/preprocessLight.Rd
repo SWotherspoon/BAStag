@@ -72,7 +72,7 @@ process consists of four stages,
 \item Subset -- selection of a subset of the data for processing
 \item Search -- semi-automated search for the twilights
 \item Insert -- optionally, twilights are inserted where the light record is incomplete
-\item Edit -- optioanlly, individual twilights are manually adjusted based on the light profiles.
+\item Edit -- optionally, individual twilights are manually adjusted based on the light profiles.
 }
 
 At each stage, user is presented with two windows.  The first
