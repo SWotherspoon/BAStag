@@ -759,7 +759,7 @@ overlayTwilightResiduals <- function(twilights,index,mode,xlim,ylim,
 ##' @param aspect aspect ratio of the map.
 ##' @param extend the number of locations before and after the current
 ##' location to highlight.
-##' @param auto.advance advance to next point afet edit.
+##' @param auto.advance advance to next point after edit.
 ##' @param plotMap A function to plot the background map.
 ##' @param plot.overlay A function to overlay twilight specific data on the map.
 ##' @param is.invalid A function that indicates if a location is not valid.
@@ -992,7 +992,7 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 ##' \item Subset -- selection of a subset of the data for processing
 ##' \item Search -- semi-automated search for the twilights
 ##' \item Insert -- optionally, twilights are inserted where the light record is incomplete
-##' \item Edit -- optioanlly, individual twilights are manually adjusted based on the light profiles.
+##' \item Edit -- optionally, individual twilights are manually adjusted based on the light profiles.
 ##' }
 ##'
 ##' At each stage, user is presented with two windows.  The first
@@ -1151,6 +1151,10 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                             point.cex=0.8,width=12,height=4,
                             palette=defaultPalette[c(5,2,9,3,4,1,13)]) {
 
+
+  append.script <- function(script,comment,expr)
+    paste(script,comment,paste(deparse(expr,width.cutoff=200),collapse="\n"),sep="\n")
+
   ## Round down/up to nearest offset
   floorDate <- function(date) date - ((as.hour(date)-offset)%%24)*60*60
   ceilingDate <- function(date) date + ((offset-as.hour(date))%%24)*60*60
@@ -1162,6 +1166,14 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   ## Set initial seed points
   seed <- attr(twilights,"seed")
   include <- attr(twilights,"include")
+
+  ## Initialize edit script
+  script <- ""
+  script <- append.script(script,"## Dataframe of twilights",substitute(twilights <- twl,list(twl=substitute(twilights))))
+  script <- append.script(script,"## Dataframe of fixed locations",substitute(fixed <- loc,list(loc=substitute(fixed))))
+  script <- append.script(script,"## Zenith angle",substitute(zenith <- zen,list(zen=zenith)))
+  script <- append.script(script,"## Light Threshold",substitute(threshold <- l,list(l=threshold)))
+  script <- append.script(script,"## Light data",substitute(tagdata <- data,list(data=substitute(tagdata))))
 
   Date1 <- minDate
   Date2 <- maxDate
@@ -1388,31 +1400,31 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
           ## Recompute twilights
           twilights <<- findTwilights(tagdata,threshold=threshold,
                                        include=seed[include],exclude=seed[!include],
-                                       extend=extend,dark.min=dark.min)
-          twilights$Deleted <<- logical(nrow(twilights))
-          twilights$Marker <<- integer(nrow(twilights))
-          twilights$Inserted <<- logical(nrow(twilights))
-
+                                      extend=extend,dark.min=dark.min)
+          twilights <<- cbind(twilights,
+                              data.frame(Deleted=logical(nrow(twilights)),
+                                         Marker=integer(nrow(twilights)),
+                                         Inserted=logical(nrow(twilights))))
         }
       }
 
       if(stage==3) {
         ## Add twilights
         if(b==1) {
-          twilights <<- rbind(twilights,
-                              data.frame(Twilight=ndcTsimageDate(x,y),
-                                         Rise=FALSE,
-                                         Deleted=FALSE,
-                                         Marker=0,
-                                         Inserted=TRUE))
+          ## Update data, script
+          expr <- substitute(
+            twilights <<- edit_insert_twilight(twilights,gmt,rise=FALSE),
+            list(gmt=format(ndcTsimageDate(x,y),tz="GMT")))
+          eval(expr)
+          script <<- append.script(script,"## Insert Sunset",expr)
         }
         if(b==2) {
-          twilights <<- rbind(twilights,
-                              data.frame(Twilight=ndcTsimageDate(x,y),
-                                         Rise=TRUE,
-                                         Deleted=FALSE,
-                                         Marker=0,
-                                         Inserted=TRUE))
+          ## Update data, script
+          expr <- substitute(
+            twilights <<- edit_insert_twilight(twilights,gmt,rise=TRUE),
+            list(gmt=format(ndcTsimageDate(x,y),tz="GMT")))
+          eval(expr)
+          script <<- append.script(script,"## Insert Sunrise",expr)
         }
       }
 
@@ -1425,7 +1437,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
         }
         ## Button 2 -> toggle deletion
         if(b==2) {
-          twilights$Deleted[index] <<- !twilights$Deleted[index]
+          ## Update data, script
+          expr <- substitute(
+            twilights <<- edit_toggle_deletion(twilights,index),
+            list(index=index))
+          eval(expr)
+          script <<- append.script(script,"## Toggle deletion",expr)
+          ## Update UI
           cache(index)
         }
       }
@@ -1471,8 +1489,12 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
     ## q : quit
     if(key=="q") {
       if(!is.null(twilights)) {
-        twilights <<- twilights[order(twilights$Twilight),]
-        attr(twilights,"interval") <- c(minDate,maxDate)
+        expr <- substitute(
+          twilights <<- edit_set_interval(twilights,minGMT,maxGMT),
+          list(minGMT=format(minDate,tz="GMT"),
+               maxGMT=format(maxDate,tz="GMT")))
+        eval(expr)
+        script <<- append.script(script,"## Sort",expr)
       }
       return(-1)
     }
@@ -1509,15 +1531,18 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
     }
 
 
-
-
     if(stage==1) {
       ## Stage 1 keybindings
       ## a : accept and advance to next stage
       if(key=="a") {
         minDate <<- Date1
         maxDate <<- Date2
-        tagdata <<- tagdata[tagdata$Date >= minDate & tagdata$Date <= maxDate,]
+        expr <- substitute(
+          tagdata <<- tagdata[tagdata$Date >= as.POSIXct(minGMT,tz="GMT") & tagdata$Date <= as.POSIXct(maxGMT,tz="GMT"),],
+          list(minGMT=format(minDate,tz="GMT"),
+               maxGMT=format(maxDate,tz="GMT")))
+        eval(expr)
+        script <<- append.script(script,"## Select Interval",expr)
         DateZ <<- NULL
         stage <<- 2
       }
@@ -1528,29 +1553,38 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
         index <<- 1
         DateZ <<- NULL
         stage <<- 3
+
+        ## Update script
+        expr <- substitute(
+          twilights <<- edit_search_twilights(tagdata,threshold=threshold,
+                                             include=inc,exclude=exc,
+                                             extend=ext,dark.min=dm),
+          list(inc=format(seed,tz="GMT")[include],
+               exc=format(seed,tz="GMT")[!include],
+               ext=extend,
+               dm=dark.min))
+        script <<- append.script(script,"## Search",expr)
       }
       if(key=="u") {
         if(length(seed)>0) {
           seed <<- seed[-1]
           include <<- include[-1]
-
           ## Recompute twilights
-          twilights <<- findTwilights(tagdata,threshold=threshold,
-                                       include=seed[include],exclude=seed[!include],
-                                       extend=extend,dark.min=dark.min)
-          twilights$Deleted <<- logical(nrow(twilights))
-          twilights$Marker <<- integer(nrow(twilights))
-          twilights$Inserted <<- logical(nrow(twilights))
+          twilights <<- edit_search_twilights(tagdata,threshold=threshold,
+                                             include=seed[include],exclude=seed[!include],
+                                             extend=extend,dark.min=dark.min)
         }
       }
     } else if(stage==3) {
       ## Stage 3 keybindings
       ## a : accept and advance to next stage
       if(key=="a") {
-        twilights$Twilight3 <<- twilights$Twilight
-        twilights$Marker3 <<- twilights$Marker
         ks <- order(twilights$Twilight)
-        twilights <<- twilights[ks,]
+        ## Update data, script
+        expr <- substitute(twilights <<- edit_init_undo(twilights),list())
+        eval(expr)
+        script <<- append.script(script,"## Record Undo Data",expr)
+        ## Update UI
         cache(ks[index])
         if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
         zoom <<- 6
@@ -1558,27 +1592,37 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       }
       ## u : undo twilight insertions
       if(key=="u") {
-        n <- nrow(twilights)
-        if(twilights$Inserted[n]) twilights <<- twilights[-n,]
+        ## Update data, script
+        expr <- substitute(twilights <<- edit_undo_insert(twilights),list())
+        eval(expr)
+        script <<- append.script(script,"## Undo insertion",expr)
+        ## Update UI
         index <<- nrow(twilights)
       }
       ## Markers
       if(key >= "0" && key <= "9") {
         marker <- as.numeric(key)
         index <<- nrow(twilights)
-        twilights$Marker[index] <<- marker
-        if(marker > 0 && marker <= NROW(fixed))
-          twilights$Twilight[index] <<- twilight(twilights$Twilight[index],
-                                                 fixed[marker,1],fixed[marker,2],
-                                                 rise=twilights$Rise[index],
-                                                 zenith=zenith)
+        tm <- twilights$Marker[index]
+        expr <-  substitute(
+          twilights <<- edit_set_marker(twilights,index,marker,fixed,zenith),
+          list(index=index,marker=marker))
+        eval(expr)
+        script <<- append.script(script,paste("## Mark",marker),expr)
       }
     } else if(stage==4) {
       ## Stage 4 keybindings
       ## a : accept changes
       if(key=="a") {
         if(!is.null(editpt)) {
-          twilights$Twilight[index] <<- .POSIXct(editpt[1],"GMT")
+          tm <- twilights$Twilight[index]
+          ## Update data, script
+          expr <- substitute(
+            twilights <<- edit_set_twilight(twilights,index,gmt),
+            list(index=index,gmt=format(.POSIXct(editpt[1],"GMT"),tz="GMT")))
+          eval(expr)
+          script <<- append.script(script,paste("## Edit",format(tm,tz="GMT")),expr)
+          ## Update UI
           if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
           editpt <<- NULL
           changed <<- FALSE
@@ -1589,8 +1633,15 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                       (twilights$Twilight >= twilights$Twilight[index]-60*60*60) &
                         (twilights$Rise==twilights$Rise[index]))
         mdn <- median((as.numeric(twilights$Twilight[ks])-
-                         as.numeric(twilights$Twilight[index])+12*60*60)%%(24*60*60)-12*60*60)
-        twilights$Twilight[index] <<- .POSIXct(twilights$Twilight[index]+mdn,"GMT")
+                       as.numeric(twilights$Twilight[index])+12*60*60)%%(24*60*60)-12*60*60)
+        tm <- twilights$Twilight[index]
+        ## Update data, script
+        expr <- substitute(
+          twilights <<- edit_set_twilight(twilights,index,gmt),
+          list(index=index,gmt=format(.POSIXct(twilights$Twilight[index]+mdn,"GMT"),tz="GMT")))
+        eval(expr)
+        script <<- append.script(script,paste("## Edit",format(tm,tz="GMT")),expr)
+        ## Update UI
         if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
       }
       ## x : reset selection
@@ -1599,7 +1650,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       }
       ## d : toggle deletion
       if(key=="d") {
-        twilights$Deleted[index] <<- !twilights$Deleted[index]
+        ## Update data, script
+        expr <- substitute(
+          twilights <<- edit_toggle_deletion(twilights,index),
+          list(index=index))
+        eval(expr)
+        script <<- append.script(script,"## Toggle Deletion",expr)
+        ## Update UI
         if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
       }
       ## p : toggle display of points in the profile window
@@ -1612,8 +1669,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       }
       ## u : undo edits
       if(key=="u") {
-        twilights$Twilight[index] <<- twilights$Twilight3[index]
-        twilights$Marker[index] <<- twilights$Marker3[index]
+        ## Update data, script
+        expr <- substitute(
+          twilights <<- edit_undo_set(twilights,index),
+          list(index=index))
+        eval(expr)
+        script <<- append.script(script,"##Undo",expr)
+        ## Update UI
         if(map) path <<- thresholdPath(twilights$Twilight,twilights$Rise,zenith=zenith)$x
       }
       ## Left/Right : jump to neighbouring twilight
@@ -1626,12 +1688,13 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
       ## Markers
       if(key >= "0" && key <= "9") {
         marker <- as.numeric(key)
-        twilights$Marker[index] <<- marker
-        if(marker > 0 && marker <= NROW(fixed))
-          twilights$Twilight[index] <<- twilight(twilights$Twilight[index],
-                                                 fixed[marker,1],fixed[marker,2],
-                                                 rise=twilights$Rise[index],
-                                                 zenith=zenith)
+        tm <- twilights$Marker[index]
+        ## Update data, script
+        expr <-  substitute(
+          twilights <<- edit_set_marker(twilights,index,marker,fixed,zenith),
+          list(index=index,marker=marker))
+        eval(expr)
+        script <<- append.script(script,paste("## Mark",format(tm,tz="GMT")),expr)
       }
     }
 
@@ -1692,6 +1755,125 @@ preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
   attr(twilights,"maxDate") <- maxDate
   attr(twilights,"seed") <- seed
   attr(twilights,"include") <- include
+  attr(twilights,"script") <- paste("local({",script,"twilights","})",sep="\n")
   twilights
 }
+
+
+
+
+##' These functions are used to edit the dataframe of twilight times.
+##'
+##' These functions are used in the auditing script generated by
+##' \code{\link{preprocessLight}}.
+##'
+##' @title Twilight Editing
+##' @param twilights a dataframe of twilights
+##' @param tagdata a dataframe with columns \code{Date} and
+##' \code{Light} that are the sequence of sample times (as POSIXct)
+##' @param threshold the light threshold that defines twilight.
+##' @param include a vector of times. Nights that span these
+##' times are included in the search.
+##' @param exclude a vector of times. Nights that span these
+##' times are excluded from the search.
+##' @param extend a time in minutes. The function seeks periods of
+##' darkness that differ from one another by 24 hours plus or minus
+##' this interval.
+##' @param dark.min a time in minutes. Periods of darkness shorter
+##' than this interval will be excluded.
+##' @param zenith the solar zenith angle that defines twilight.
+##' @param fixed a two column array of fixed locations.
+##' @param rise is the twilight a sunrise.
+##' @param index the index of the twilight to modify.
+##' @param marker the integer marker.
+##' @param gmt a string corresponding to a GMT time.
+##' @param minGMT a string corresponding to a GMT time.
+##' @param maxGMT a string corresponding to a GMT time.
+##' @return The modified twilight dataframe.
+##' @rdname edit_twilight
+##' @export
+edit_set_twilight <- function(twilights,index,gmt) {
+  twilights$Twilight[index] <- as.POSIXct(gmt,tz="GMT")
+  twilights
+}
+
+##' @rdname edit_twilight
+##' @export
+edit_undo_set <- function(twilights,index) {
+  twilights$Twilight[index] <- twilights$Twilight3[index]
+  twilights$Marker[index] <- twilights$Marker3[index]
+  twilights
+}
+
+
+##' @rdname edit_twilight
+##' @export
+edit_set_marker <- function(twilights,index,marker,fixed,zenith) {
+  twilights$Marker[index] <- marker
+  if(marker > 0 && marker <= NROW(fixed))
+    twilights$Twilight[index] <- twilight(twilights$Twilight[index],
+                                          fixed[marker,1],fixed[marker,2],
+                                          rise=twilights$Rise[index],
+                                          zenith=zenith)
+  twilights
+}
+
+
+##' @rdname edit_twilight
+##' @export
+edit_search_twilights <- function(tagdata,threshold,include,exclude,extend,dark.min) {
+  cbind(findTwilights(tagdata,threshold=threshold,
+                      include=as.POSIXct(include,tz="GMT"),
+                      exclude=as.POSIXct(exclude,tz="GMT"),
+                      extend=extend,dark.min=dark.min),
+        Deleted=FALSE,
+        Marker=0,
+        Inserted=FALSE)
+}
+
+##' @rdname edit_twilight
+##' @export
+edit_insert_twilight <- function(twilights,gmt,rise) {
+  rbind(twilights,
+        data.frame(Twilight=as.POSIXct(gmt,tz="GMT"),
+                   Rise=rise,
+                   Deleted=FALSE,
+                   Marker=0,
+                   Inserted=TRUE))
+}
+
+##' @rdname edit_twilight
+##' @export
+edit_undo_insert <- function(twilights) {
+  if(twilights$Inserted[nrow(twilights)]) twilights <- twilights[-nrow(twilights),]
+  twilights
+}
+
+
+##' @rdname edit_twilight
+##' @export
+edit_toggle_deletion <- function(twilights,index) {
+  twilights$Deleted[index] <- !twilights$Deleted[index]
+  twilights
+}
+
+##' @rdname edit_twilight
+##' @export
+edit_set_interval <- function(twilights,minGMT,maxGMT){
+  twilights <- twilights[order(twilights$Twilight),]
+  attr(twilights,"interval") <- c(as.POSIXct(minGMT,tz="GMT"),as.POSIXct(maxGMT,tz="GMT"))
+  twilights
+}
+
+##' @rdname edit_twilight
+##' @export
+edit_init_undo <- function(twilights) {
+  twilights <- cbind(twilights,
+                     data.frame(Twilight3=twilights$Twilight,
+                                Marker3=twilights$Marker))
+  twilights[order(twilights$Twilight),]
+}
+
+
+
 
