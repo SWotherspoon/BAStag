@@ -1822,13 +1822,13 @@ edit_set_marker <- function(twilights,index,marker,fixed,zenith) {
 ##' @rdname edit_twilight
 ##' @export
 edit_search_twilights <- function(tagdata,threshold,include,exclude,extend,dark.min) {
-  cbind(findTwilights(tagdata,threshold=threshold,
+  twl <- findTwilights(tagdata,threshold=threshold,
                       include=as.POSIXct(include,tz="GMT"),
                       exclude=as.POSIXct(exclude,tz="GMT"),
-                      extend=extend,dark.min=dark.min),
-        Deleted=FALSE,
-        Marker=0,
-        Inserted=FALSE)
+                      extend=extend,dark.min=dark.min)
+  if(nrow(twl) > 0)
+    twl <- cbind(twl,Deleted=FALSE,Marker=0,Inserted=FALSE)
+  twl
 }
 
 ##' @rdname edit_twilight
