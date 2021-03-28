@@ -5,11 +5,22 @@
 \alias{twilightData}
 \title{Extract auxiliary tag data}
 \usage{
-intervalData(date, y, start, end, FUN = function(y) if (all(is.na(y))) NA else
-  mean(y, na.rm = TRUE))
+intervalData(
+  date,
+  y,
+  start,
+  end,
+  FUN = function(y) if (all(is.na(y))) NA else mean(y, na.rm = TRUE)
+)
 
-twilightData(date, y, twl, before = 4, after = 4, FUN = function(y) if
-  (all(is.na(y))) NA else mean(y, na.rm = TRUE))
+twilightData(
+  date,
+  y,
+  twl,
+  before = 4,
+  after = 4,
+  FUN = function(y) if (all(is.na(y))) NA else mean(y, na.rm = TRUE)
+)
 }
 \arguments{
 \item{date}{the sequence of sample times as POSIXct.}

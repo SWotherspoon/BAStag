@@ -5,8 +5,16 @@
 \alias{tsimageLocator}
 \title{Display Tag Data as an Image}
 \usage{
-tsimage(date, y, offset = 0, dt = NA, xlab = "Date", ylab = "Hour",
-  xaxt = par("xaxt"), ...)
+tsimage(
+  date,
+  y,
+  offset = 0,
+  dt = NA,
+  xlab = "Date",
+  ylab = "Hour",
+  xaxt = par("xaxt"),
+  ...
+)
 
 tsimageLocator(im, n = 512)
 }

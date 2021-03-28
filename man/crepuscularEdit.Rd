@@ -4,10 +4,19 @@
 \alias{crepuscularEdit}
 \title{Edit crepuscular segments}
 \usage{
-crepuscularEdit(tagdata, twilights, offset = 0, extend = 6,
-  threshold = NULL, lmax = 64, zlim = c(0, lmax), point.cex = 0.5,
-  width = 12, height = 4, palette = defaultPalette[c(5, 2, 9, 3, 4, 1,
-  1)])
+crepuscularEdit(
+  tagdata,
+  twilights,
+  offset = 0,
+  extend = 6,
+  threshold = NULL,
+  lmax = 64,
+  zlim = c(0, lmax),
+  point.cex = 0.5,
+  width = 12,
+  height = 4,
+  palette = defaultPalette[c(5, 2, 9, 3, 4, 1, 1)]
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

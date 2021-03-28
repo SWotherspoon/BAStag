@@ -4,8 +4,14 @@
 \alias{findCrepuscular}
 \title{Search for crepuscular light segments}
 \usage{
-findCrepuscular(tagdata, twilights, min.threshold = 0, max.threshold = 60,
-  extend.dark = 1, extend.light = 2)
+findCrepuscular(
+  tagdata,
+  twilights,
+  min.threshold = 0,
+  max.threshold = 60,
+  extend.dark = 1,
+  extend.light = 2
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

@@ -4,8 +4,14 @@
 \alias{findTwilights}
 \title{Search for twilight times}
 \usage{
-findTwilights(tagdata, threshold, include, exclude = NULL, extend = 0,
-  dark.min = 0)
+findTwilights(
+  tagdata,
+  threshold,
+  include,
+  exclude = NULL,
+  extend = 0,
+  dark.min = 0
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

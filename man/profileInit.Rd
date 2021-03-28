@@ -7,9 +7,16 @@
 \usage{
 profileInit(date, light, lmax = 64, xlab = "", main = "")
 
-profileOverlay(date, light, threshold = NULL, point = FALSE, lag = TRUE,
+profileOverlay(
+  date,
+  light,
+  threshold = NULL,
+  point = FALSE,
+  lag = TRUE,
   profile.col = defaultPalette[c(9, 5, 2)],
-  threshold.col = defaultPalette[1], point.cex = 0.6)
+  threshold.col = defaultPalette[1],
+  point.cex = 0.6
+)
 }
 \arguments{
 \item{date}{a list of three sequences of sample times as POSIXct.}

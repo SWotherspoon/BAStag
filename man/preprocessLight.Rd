@@ -4,12 +4,25 @@
 \alias{preprocessLight}
 \title{Interactively derive twilight}
 \usage{
-preprocessLight(tagdata, threshold, offset = 0, lmax = 64, zlim = c(0,
-  lmax), extend = 0, dark.min = 0, zenith = 96, fixed = NULL,
-  map = FALSE, plotMap = function(xlim, ylim) {     plot.new()    
-  plot.window(xlim, ylim) }, twilights = NULL, stage = 1, point.cex = 0.8,
-  width = 12, height = 4, palette = defaultPalette[c(5, 2, 9, 3, 4, 1,
-  13)])
+preprocessLight(
+  tagdata,
+  threshold,
+  offset = 0,
+  lmax = 64,
+  zlim = c(0, lmax),
+  extend = 0,
+  dark.min = 0,
+  zenith = 96,
+  fixed = NULL,
+  map = FALSE,
+  plotMap = function(xlim, ylim) {     plot.new()     plot.window(xlim, ylim) },
+  twilights = NULL,
+  stage = 1,
+  point.cex = 0.8,
+  width = 12,
+  height = 4,
+  palette = defaultPalette[c(5, 2, 9, 3, 4, 1, 13)]
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

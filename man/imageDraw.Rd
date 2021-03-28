@@ -4,9 +4,17 @@
 \alias{imageDraw}
 \title{Image plot with twilights}
 \usage{
-imageDraw(tagdata = NULL, twilights = NULL, offset = 0, xlim = NULL,
-  mark = NULL, points.col = NULL, ribbon.col = NULL, zlim = c(0, 64),
-  point.cex = 0.6)
+imageDraw(
+  tagdata = NULL,
+  twilights = NULL,
+  offset = 0,
+  xlim = NULL,
+  mark = NULL,
+  points.col = NULL,
+  ribbon.col = NULL,
+  zlim = c(0, 64),
+  point.cex = 0.6
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

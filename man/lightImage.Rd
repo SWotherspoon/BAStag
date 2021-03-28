@@ -4,8 +4,16 @@
 \alias{lightImage}
 \title{Display Light Data as an Image}
 \usage{
-lightImage(tagdata, offset = 0, zlim = c(0, 64), dt = NA, xlab = "Date",
-  ylab = "Hour", col = grey(seq(0, 1, length = 256)), ...)
+lightImage(
+  tagdata,
+  offset = 0,
+  zlim = c(0, 64),
+  dt = NA,
+  xlab = "Date",
+  ylab = "Hour",
+  col = grey(seq(0, 1, length = 256)),
+  ...
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

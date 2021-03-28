@@ -4,8 +4,15 @@
 \alias{overlayTwilightResiduals}
 \title{Overlay data for path editing}
 \usage{
-overlayTwilightResiduals(twilights, index, mode, xlim, ylim,
-  twilight.contours = c(10, 20, 50), zenith = NULL)
+overlayTwilightResiduals(
+  twilights,
+  index,
+  mode,
+  xlim,
+  ylim,
+  twilight.contours = c(10, 20, 50),
+  zenith = NULL
+)
 }
 \arguments{
 \item{twilights}{the full twilight data}

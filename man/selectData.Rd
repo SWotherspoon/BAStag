@@ -4,9 +4,18 @@
 \alias{selectData}
 \title{Select data}
 \usage{
-selectData(date, r, deleted = NULL, extend = 48, xlab = "Date",
-  ylab = "", width = 12, height = 4, palette = defaultPalette[c(2, 1)],
-  ...)
+selectData(
+  date,
+  r,
+  deleted = NULL,
+  extend = 48,
+  xlab = "Date",
+  ylab = "",
+  width = 12,
+  height = 4,
+  palette = defaultPalette[c(2, 1)],
+  ...
+)
 }
 \arguments{
 \item{date}{sample times.}

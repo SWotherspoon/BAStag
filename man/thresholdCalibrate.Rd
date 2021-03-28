@@ -4,8 +4,14 @@
 \alias{thresholdCalibrate}
 \title{Light Threshold Calibration}
 \usage{
-thresholdCalibrate(tagdata, lon, lat, max.adjust = TRUE,
-  col = c("dodgerblue", "firebrick"), ...)
+thresholdCalibrate(
+  tagdata,
+  lon,
+  lat,
+  max.adjust = TRUE,
+  col = c("dodgerblue", "firebrick"),
+  ...
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

@@ -4,8 +4,12 @@
 \alias{extractCrepuscular}
 \title{Extract crepuscular light segments}
 \usage{
-extractCrepuscular(tagdata, twilights, adjust.interval = 0,
-  filter.threshold = NULL)
+extractCrepuscular(
+  tagdata,
+  twilights,
+  adjust.interval = 0,
+  filter.threshold = NULL
+)
 }
 \arguments{
 \item{tagdata}{a dataframe with columns \code{Date} and

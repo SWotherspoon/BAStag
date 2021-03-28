@@ -4,11 +4,25 @@
 \alias{pathEdit}
 \title{Adjust a path}
 \usage{
-pathEdit(path, twilights, offset = 0, fixed = FALSE, aspect = 1,
-  extend = 3, auto.advance = FALSE, plotMap = NULL, plot.overlay = NULL,
-  is.invalid = function(path) logical(nrow(path)), point.cex = 0.5,
-  width = 12, height = 4, map.width = 8, map.height = 8,
-  palette = defaultPalette[c(5, 2, 1, 12, 12, 1)], ...)
+pathEdit(
+  path,
+  twilights,
+  offset = 0,
+  fixed = FALSE,
+  aspect = 1,
+  extend = 3,
+  auto.advance = FALSE,
+  plotMap = NULL,
+  plot.overlay = NULL,
+  is.invalid = function(path) logical(nrow(path)),
+  point.cex = 0.5,
+  width = 12,
+  height = 4,
+  map.width = 8,
+  map.height = 8,
+  palette = defaultPalette[c(5, 2, 1, 12, 12, 1)],
+  ...
+)
 }
 \arguments{
 \item{path}{a two column matrix of the (lon,lat) locations at the
