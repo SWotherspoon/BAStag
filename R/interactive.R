@@ -1146,10 +1146,14 @@ pathEdit <- function(path,twilights,offset=0,fixed=FALSE,
 preprocessLight <- function(tagdata,threshold,offset=0,lmax=64,zlim=c(0,lmax),
                             extend=0,dark.min=0,
                             zenith=96,fixed=NULL,
-                            map=FALSE,plotMap=function(xlim,ylim) {plot.new(); plot.window(xlim,ylim)},
+                            map=FALSE,plotMap=NULL,
                             twilights=NULL,stage=1,
                             point.cex=0.8,width=12,height=4,
                             palette=defaultPalette[c(5,2,9,3,4,1,13)]) {
+  
+  ## Default is no map
+  if(is.null(plotMap))
+    plotMap <- function(xlim,ylim) { plot.new(); plot.window(xlim,ylim) }
 
   ## Round down/up to nearest offset
   floorDate <- function(date) date - ((as.hour(date)-offset)%%24)*60*60

@@ -15,7 +15,7 @@ preprocessLight(
   zenith = 96,
   fixed = NULL,
   map = FALSE,
-  plotMap = function(xlim, ylim) {     plot.new()     plot.window(xlim, ylim) },
+  plotMap = NULL,
   twilights = NULL,
   stage = 1,
   point.cex = 0.8,
